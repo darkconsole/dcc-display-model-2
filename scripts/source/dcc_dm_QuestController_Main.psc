@@ -21,6 +21,18 @@ at this to use the API.}
 ******************************************************************************/;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; BEHAVIOUR API;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; control how an actor behaves via package overrides. this will be mostly used
+;; to make actors stand still and do nothing, as well as release them from that
+;; boring life. by default applying our special do nothing package will be auto
+;; priority'd to 99, and anything else 100. when removing the non-donothing will
+;; then allow the actor to fall back into doing nothing until released.
+
+;; Void BehaviourApply(Actor who, Package what, Int priority=-1)
+;; Void BehaviourClear(Actor who, Package what)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; CLONE API ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; The main purpose of the clone API is to give you a super easy way to create
@@ -31,13 +43,32 @@ at this to use the API.}
 ;; the anal torch and now you have a mannequin lamp you can spawn infinite of
 ;; to light up your house.
 
-;; Void CloneActorCopy(Actor, Actor)
-;; Actor CloneActorGet(Actor)
+;; Void            CloneActorClear(Actor clipboard)
+;; Void            CloneActorCopy(Actor clipboard, Actor source)
+;; Actor           CloneActorGet(Actor clipboard)
+;; Actor           CloneActorPaste(Actor clipboard)
+;; ObjectReference CloneMarkerPlace(Actor who)
+;; ObjectReference CloneMarkerSet(Actor who, ObjectReference where)
+;; ObjectReference CloneMarkerGet(Actor who)
+;; Void            CloneMarkerClear(Actor who)
 
-;; ObjectReference CloneMarkerPlace(Actor)
-;; ObjectReference CloneMarkerSet(Actor, ObjectReference)
-;; ObjectReference CloneMarkerGet(Actor)
-;; Void            CloneMarkerClear(Actor)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; STORAGE UTIL KEYS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Actor ;;;;;;;;;;;;;;;
+
+;; String          DisplayModel.Actor.Animation
+;; Form            DisplayModel.Actor.OutfitNormal
+;; Form            DisplayModel.Actor.OutfitSleep
+;; Actor           DisplayModel.Clone.Actor
+;; ObjectReference DisplayModel.Clone.Marker
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Package ;;;;;;;;;;;;;
+
+;; Actor[]         DisplayModel.Package.Users
 
 ;/******************************************************************************
   _   __          _ ____       ___                        __  _
@@ -206,6 +237,9 @@ Function ResetModValues()
 
 	self.OptDebug = False
 
+	self.UnregisterForMenu("Sleep/Wait Menu")
+	self.RegisterForMenu("Sleep/Wait Menu")
+
 	Return
 EndFunction
 
@@ -220,6 +254,119 @@ Function ResetModSpells()
 
 	Return
 EndFunction
+
+Event OnMenuOpen(String Menu)
+{watch for menus.}
+
+	If(Menu == "Sleep/Wait Menu")
+		self.OnWaitMenu(true)
+	EndIf
+
+	Return
+EndEvent
+
+Event OnMenuClose(String Menu)
+{watch for menus.}
+
+	If(Menu == "Sleep/Wait Menu")
+		self.OnWaitMenu(false)
+	EndIf
+
+	Return
+EndEvent
+
+;/******************************************************************************
+******************************************************************************/;
+
+Function OnWaitMenu(Bool opened)
+{when we sleep or wait, we want to try and disable any npc running the do
+nothing package to prevent them from moving while we wait. it seems package
+processing is suspended during wait and there is actually a moment they may get
+a step or two away before kicking in again.}
+
+	Int num = StorageUtil.FormListCount(self.dcc_dm_PackageDoNothing,"DisplayModel.Package.Users")
+	Actor who
+
+	While(num > 0)
+		num -= 1
+		who = StorageUtil.FormListGet(self.dcc_dm_PackageDoNothing,"DisplayModel.Package.Users",num) as Actor
+
+		If(who != None)
+			If(opened)
+				who.Disable(false)
+			Else
+				who.Enable(false)
+			EndIf
+		EndIf
+	EndWhile
+
+	Return
+EndFunction
+
+;/******************************************************************************
+******************************************************************************/;
+
+Function AnimationApply(Actor who, String which)
+{play and store an animation that can be renewed later.}
+
+	self.AnimationSet(who,which)
+	Debug.SendAnimationEvent(who,which)
+	Return
+EndFunction
+
+String Function AnimationGet(Actor who)
+{return the animation that was stored for this actor.}
+
+	If(StorageUtil.HasStringValue(who,"DisplayModel.Actor.Animation"))
+		Return StorageUtil.GetStringValue(who,"DisplayModel.Actor.Animation")
+	Else
+		Return "IdleForceDefaultState"
+	Endif
+EndFunction
+
+Function AnimationSet(Actor who, String which)
+{store an animation for an actor.}
+
+	StorageUtil.SetStringValue(who,"DisplayModel.Actor.Animation",which)
+	Return
+EndFunction
+
+Function AnimationRenew(Actor who)
+{replay the stored animation for an actor.}
+
+	Debug.SendAnimationEvent(who,self.AnimationGet(who))
+	Return
+EndFunction
+
+;;;;;;;;
+;;;;;;;;
+
+Function SightEventRegister(Actor who)
+;; register for los gains. when we gain sight on an actor that is being told to
+;; display we will check to make sure it is still doing the last animation they
+;; were told to do.
+
+	self.RegisterForLOS(self.Player,who)
+	Return
+EndFunction
+
+Function SightEventUnregister(Actor who)
+;; unregister for los gains.
+
+	self.UnregisterForLOS(self.Player,who)
+	Return
+EndFunction
+
+Event OnGainLOS(Actor who, ObjectReference target)
+
+	;; if the player sees a display model make sure they are still animating
+	;; properly. mostly for things like cell changes.
+	If((target as Actor).GetCurrentPackage() == self.dcc_dm_PackageDoNothing)
+		self.AnimationRenew(target as Actor)
+	EndIf
+
+	Return
+EndEvent
 
 ;/******************************************************************************
    ___      __             _                 ___   ___  ____
@@ -256,10 +403,16 @@ Function BehaviourApply(Actor who, Package what, Int priority=-1)
 		who.RegisterForUpdate(60)
 		who.SetRestrained(True)
 		who.SetDontMove(True)
+		self.AnimationApply(who,"ZazAPC001")
+		self.SightEventRegister(who)
+		self.OutfitApply(who,None)
+		self.OutfitApply(who,None,true)
 	EndIf
 
 	ActorUtil.AddPackageOverride(who,what,priority)
 	who.EvaluatePackage()
+
+	StorageUtil.FormListAdd(what,"DisplayModel.Package.Users",who)
 
 	Return
 EndFunction
@@ -270,15 +423,54 @@ Function BehaviourClear(Actor who, Package what)
 ;; is the display model base nothing package.
 
 	ActorUtil.RemovePackageOverride(who,what)
+	who.EvaluatePackage()
 
 	If(what == self.dcc_dm_PackageDoNothing)
 		who.UnregisterForUpdate()
 		who.SetRestrained(False)
 		who.SetDontMove(False)
+		self.SightEventUnregister(who)
+		self.OutfitRestore(who)
 	EndIf
+
+	StorageUtil.FormListRemove(what,"DisplayModel.Package.Users",who,True)
 
 	Return
 EndFunction
+
+;/******************************************************************************
+  ____       __  ____ __    ___   ___  ____
+ / __ \__ __/ /_/ _(_) /_  / _ | / _ \/  _/
+/ /_/ / // / __/ _/ / __/ / __ |/ ___// /
+\____/\_,_/\__/_//_/\__/ /_/ |_/_/  /___/
+
+******************************************************************************/;
+
+Function OutfitApply(Actor who, Outfit what, Bool sleep=false)
+{Set an outfit for a specified actor. if it is the first time used on the actor
+then it will mark down what the original outfit was so that it can be restored
+later.}
+
+	If(StorageUtil.GetFormValue(who,"DisplayModel.Actor.OutfitNormal") == None)
+		StorageUtil.SetFormValue(who,"DisplayModel.Actor.OutfitNormal",who.GetActorBase().GetOutfit(false))
+		StorageUtil.SetFormValue(who,"DisplayModel.Actor.OutfitSleep",who.GetActorBase().GetOutfit(true))
+	EndIf
+
+	who.SetOutfit(what,sleep)
+
+	Return
+EndFunction
+
+Function OutfitRestore(Actor who)
+{restore an outfit that was stored for the specified actor, if it had been
+saved previously.}
+
+	who.SetOutfit(StorageUtil.GetFormValue(who,"DisplayModel.Actor.OutfitNormal") as Outfit, false)
+	who.SetOutfit(StorageUtil.GetFormValue(who,"DisplayModel.Actor.OutfitSleep") as Outfit, true)
+
+	Return
+EndFunction
+
 
 ;/******************************************************************************
   _______                    ___   ___  ____
