@@ -1,1 +1,4 @@
-scripts/*.pex
+#bof
+/scripts/*.pex
+/meta.ini
+#eof

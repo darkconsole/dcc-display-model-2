@@ -63,6 +63,7 @@ at this to use the API.}
 ;; Form            DisplayModel.Actor.OutfitSleep
 ;; Actor           DisplayModel.Clone.Actor
 ;; ObjectReference DisplayModel.Clone.Marker
+;; FormList        DisplayModel.Actor.ArmorList
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -95,6 +96,9 @@ Package Property dcc_dm_PackageDoNothing Auto
 ;; interface spells.
 Spell Property dcc_dm_SpellCloneMenuShow Auto
 
+;; various
+Outfit Property dcc_dm_OutfitNone Auto
+
 ;/******************************************************************************
   _____          ____                    __  _
  / ___/__  ___  / _(_)__ ___ _________ _/ /_(_)__  ___  ___
@@ -103,7 +107,7 @@ Spell Property dcc_dm_SpellCloneMenuShow Auto
                    /___/
 ******************************************************************************/;
 
-Bool Property OptDebug = False Auto Hidden
+Bool Property OptDebug = TRUE Auto Hidden
 
 ;/******************************************************************************
   __  ____  _ ___ __         __  ___    __  __           __
@@ -122,79 +126,80 @@ make dealing with dialog fragments a little easier.}
 	Return Game.GetFormFromFile(0xd62,"dc-display-model-2.esp") as dcc_dm_QuestController_Main
 EndFunction
 
-Function Print(String msg)
+Function Print(String Msg)
 {print messages out to the notification area.}
 
-	Debug.Notification("[DM2] " + msg);
+	Debug.Notification("[DM2] " + Msg);
 	Return
 EndFunction
 
-Function PrintDebug(string msg)
-{print messages out to the notification area if debugging is enabled.}
+Function PrintDebug(String Msg)
+{send a message to the console.}
 
 	If(!self.OptDebug)
 		Return
 	EndIf
 
-	Debug.Notification("[DM2-DBG] " + msg)
+	MiscUtil.PrintConsole("[DM2] " + Msg)
 	Return
 EndFunction
 
-Function WheelMenuSet(Int num, String text, String tip, Bool enabled=True)
+Function WheelMenuSet(Int Num, String Text, String Tip, Bool Enabled=True)
 {assign things to wheel menu positions.}
 
-	UIExtensions.SetMenuPropertyIndexString("UIWheelMenu","optionLabelText",num,text)
-	UIExtensions.SetMenuPropertyIndexString("UIWheelMenu","optionText",num,tip)
-	UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu","optionEnabled",num,enabled)
+	UIExtensions.SetMenuPropertyIndexString("UIWheelMenu","optionLabelText",Num,Text)
+	UIExtensions.SetMenuPropertyIndexString("UIWheelMenu","optionText",Num,Tip)
+	UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu","optionEnabled",Num,Enabled)
 
 	Return
 EndFunction
 
-Function EquipStoredArmor(Actor who, Bool strip=True)
+Function EquipStoredArmor(Actor Who, Bool Strip=True)
 {equip the items stored for this actor.}
 
-	Form item
-	Int icount = StorageUtil.FormListCount(who,"DisplayModel.Clone.ArmorList")
+	Form Item
+	Int ItemCount = StorageUtil.FormListCount(Who,"DisplayModel.Actor.ArmorList")
 
-	If(strip)
-		who.RemoveAllItems()
+	If(Strip)
+		;;Who.RemoveAllItems()
+		Who.UnequipAll()
 	EndIf
 
-	While(icount)
-		icount -= 1
-		item = StorageUtil.FormListGet(who,"DisplayModel.Clone.ArmorList",icount)
+	While(ItemCount)
+		ItemCount -= 1
+		Item = StorageUtil.FormListGet(Who,"DisplayModel.Actor.ArmorList",ItemCount)
 
-		If(item != None)
-			who.EquipItem(item)
+		If(Item != None)
+			Who.EquipItem(Item)
 		EndIf
 	EndWhile
 
 	Return
 EndFunction
 
-Function StoreEquippedArmor(Actor who, Actor dest=None)
+Function StoreEquippedArmor(Actor Who, Actor Dest=None)
 {store a list of the items the specified actor is wearing. if a second actor is
 specified then the list is stored under that actor instead, copying from the
 source.}
 
-	Form item
-	Int icount = who.GetNumItems()
+	Form Item
+	Int ItemCount = Who.GetNumItems()
 
-	If(dest == None)
-		dest = who
+	If(Dest == None)
+		Dest = Who
 	EndIf
 
-	StorageUtil.FormListClear(dest,"DisplayModel.Clone.ArmorList")
+	StorageUtil.FormListClear(Dest,"DisplayModel.Actor.ArmorList")
 
-	While(icount)
-		icount -= 1
-		item = who.GetNthForm(icount)
+	While(ItemCount)
+		ItemCount -= 1
+		Item = Who.GetNthForm(ItemCount)
 
-		If(who.IsEquipped(item))
-			If(item as ObjectReference != None)
-				StorageUtil.FormListAdd(dest,"DisplayModel.Clone.ArmorList",(item as ObjectReference).GetBaseObject())
+		If(Who.IsEquipped(Item))
+			If(Item as ObjectReference != None)
+				StorageUtil.FormListAdd(Dest,"DisplayModel.Actor.ArmorList",(Item as ObjectReference).GetBaseObject())
 			Else
-				StorageUtil.FormListAdd(dest,"DisplayModel.Clone.ArmorList",item)
+				StorageUtil.FormListAdd(Dest,"DisplayModel.Actor.ArmorList",Item)
 			EndIf
 		EndIf
 	EndWhile
@@ -249,6 +254,8 @@ Function ResetModSpells()
 	;; remove everything from the player.
 	self.Player.RemoveSpell(self.dcc_dm_SpellCloneMenuShow)
 
+	Utility.Wait(0.25)
+
 	;; add back the starting spells.
 	self.Player.AddSpell(self.dcc_dm_SpellCloneMenuShow,True)
 
@@ -278,24 +285,24 @@ EndEvent
 ;/******************************************************************************
 ******************************************************************************/;
 
-Function OnWaitMenu(Bool opened)
+Function OnWaitMenu(Bool Opened)
 {when we sleep or wait, we want to try and disable any npc running the do
 nothing package to prevent them from moving while we wait. it seems package
 processing is suspended during wait and there is actually a moment they may get
 a step or two away before kicking in again.}
 
-	Int num = StorageUtil.FormListCount(self.dcc_dm_PackageDoNothing,"DisplayModel.Package.Users")
-	Actor who
+	Int Num = StorageUtil.FormListCount(self.dcc_dm_PackageDoNothing,"DisplayModel.Package.Users")
+	Actor Who
 
-	While(num > 0)
-		num -= 1
-		who = StorageUtil.FormListGet(self.dcc_dm_PackageDoNothing,"DisplayModel.Package.Users",num) as Actor
+	While(Num > 0)
+		Num -= 1
+		Who = StorageUtil.FormListGet(self.dcc_dm_PackageDoNothing,"DisplayModel.Package.Users",Num) as Actor
 
-		If(who != None)
-			If(opened)
-				who.Disable(false)
+		If(Who != None)
+			If(Opened)
+				who.EnableAI(false)
 			Else
-				who.Enable(false)
+				who.EnableAI(true)
 			EndIf
 		EndIf
 	EndWhile
@@ -306,63 +313,63 @@ EndFunction
 ;/******************************************************************************
 ******************************************************************************/;
 
-Function AnimationApply(Actor who, String which)
+Function AnimationApply(Actor Who, String Which)
 {play and store an animation that can be renewed later.}
 
-	self.AnimationSet(who,which)
-	Debug.SendAnimationEvent(who,which)
+	self.AnimationSet(Who,Which)
+	Debug.SendAnimationEvent(Who,Which)
 	Return
 EndFunction
 
-String Function AnimationGet(Actor who)
+String Function AnimationGet(Actor Who)
 {return the animation that was stored for this actor.}
 
-	If(StorageUtil.HasStringValue(who,"DisplayModel.Actor.Animation"))
-		Return StorageUtil.GetStringValue(who,"DisplayModel.Actor.Animation")
+	If(StorageUtil.HasStringValue(Who,"DisplayModel.Actor.Animation"))
+		Return StorageUtil.GetStringValue(Who,"DisplayModel.Actor.Animation")
 	Else
 		Return "IdleForceDefaultState"
 	Endif
 EndFunction
 
-Function AnimationSet(Actor who, String which)
+Function AnimationSet(Actor Who, String Which)
 {store an animation for an actor.}
 
-	StorageUtil.SetStringValue(who,"DisplayModel.Actor.Animation",which)
+	StorageUtil.SetStringValue(Who,"DisplayModel.Actor.Animation",Which)
 	Return
 EndFunction
 
-Function AnimationRenew(Actor who)
+Function AnimationRenew(Actor Who)
 {replay the stored animation for an actor.}
 
-	Debug.SendAnimationEvent(who,self.AnimationGet(who))
+	Debug.SendAnimationEvent(Who,self.AnimationGet(Who))
 	Return
 EndFunction
 
 ;;;;;;;;
 ;;;;;;;;
 
-Function SightEventRegister(Actor who)
+Function SightEventRegister(Actor Who)
 ;; register for los gains. when we gain sight on an actor that is being told to
 ;; display we will check to make sure it is still doing the last animation they
 ;; were told to do.
 
-	self.RegisterForLOS(self.Player,who)
+	self.RegisterForLOS(self.Player,Who)
 	Return
 EndFunction
 
-Function SightEventUnregister(Actor who)
+Function SightEventUnregister(Actor Who)
 ;; unregister for los gains.
 
-	self.UnregisterForLOS(self.Player,who)
+	self.UnregisterForLOS(self.Player,Who)
 	Return
 EndFunction
 
-Event OnGainLOS(Actor who, ObjectReference target)
+Event OnGainLOS(Actor Who, ObjectReference Target)
 
 	;; if the player sees a display model make sure they are still animating
 	;; properly. mostly for things like cell changes.
-	If((target as Actor).GetCurrentPackage() == self.dcc_dm_PackageDoNothing)
-		self.AnimationRenew(target as Actor)
+	If((Target as Actor).GetCurrentPackage() == self.dcc_dm_PackageDoNothing)
+		self.AnimationRenew(Target as Actor)
 	EndIf
 
 	Return
@@ -376,7 +383,63 @@ EndEvent
 
 ******************************************************************************/;
 
-Function BehaviourApply(Actor who, Package what, Int priority=-1)
+Function PersistHackApply(Actor Who)
+{apply persistence hacks to keep temporary actors alive.}
+
+	If(StorageUtil.FormListFind(None,"DisplayModel.ActorList.Persist",Who) != -1)
+		;; don't re-register if we are already in here.
+		Return
+	EndIf
+
+	Who.RegisterForUpdate(600)
+	StorageUtil.FormListAdd(None,"DisplayModel.ActorList.Persist",Who,FALSE)
+	self.PrintDebug(Who.GetDisplayName() + " shall persist.")
+
+	Return
+EndFunction
+
+Function PersistHackClear(Actor Who)
+{clear the persistence hack. take into account known mods that also use this
+same persistence hack (more or less, mine only, for the time being) so that
+we don't fuck up those mods.}
+
+	StorageUtil.FormListRemove(None,"DisplayModel.ActorList.Persist",Who,TRUE)
+
+	;; mods need to track their persistence hacking via a global scope form
+	;; list containing actor references if they want me to support it:
+	;; - to create and add to a list.
+	;;   StorageUtil.FormListAdd(None,"YourModKey",Actor,FALSE)
+	;; - to remove from a list.
+	;;   StorageUtil.FormListRemove(None,"YourModKey",Actor,TRUE)
+
+	;; other mods which implement this hack should have simliar as here
+	;; to make sure they don't fuck up other mods. to add support for this
+	;; mod you should test the SGO.ActorList.Persist list. other mods
+	;; are below.
+
+	String[] FourthPartyList = new String[2]
+	FourthPartyList[0] = "Untamed.TrackingList"  ;; Untamed
+	FourthPartyList[1] = "SGO.ActorList.Persist" ;; Soulgem Oven 2
+
+	Int CurrentMod = 0
+	While(CurrentMod < FourthPartyList.Length)
+		If(StorageUtil.FormListFind(None,FourthPartyList[CurrentMod],Who) != -1)
+			;; if found in any of the fourth party lists then do not
+			;; unregister it.
+			self.PrintDebug(Who.GetDisplayName() + " persist kept for " + FourthPartyList[CurrentMod])
+			Return
+		EndIf
+
+		CurrentMod += 1
+	EndWhile
+
+	Who.UnregisterForUpdate()
+	self.PrintDebug(Who.GetDisplayName() + " persist cleared.")
+
+	Return
+EndFunction
+
+Function BehaviourApply(Actor Who, Package What, Int Priority=-1)
 ;; apply the specified ai behaviour package to the specified actor. if priority
 ;; is omitted or -1, then this function will automatically decide what priority
 ;; to use based on how this mod operates. this mod also applies the update
@@ -384,57 +447,53 @@ Function BehaviourApply(Actor who, Package what, Int priority=-1)
 ;; engine if the package being applied is the display model base nothing
 ;; package.
 
-	If(priority == -1)
+	If(Priority == -1)
 		;; auto determine what priority.
-		If(what == self.dcc_dm_PackageDoNothing)
-			priority = 99
+		If(What == self.dcc_dm_PackageDoNothing)
+			Priority = 99
 		Else
-			priority = 100
+			Priority = 100
 		EndIf
-	ElseIf(priority > 100)
-		;; fix out of bounds priority.
-		priority = 100
-	ElseIf(priority < 0)
-		;; fix out of bounds priority.
-		priority = 1
+	Else
+		;; cure out of bounding.
+		Priority = PapyrusUtil.ClampInt(Priority,1,100)
 	EndIf
 
-	If(what == self.dcc_dm_PackageDoNothing)
-		who.RegisterForUpdate(60)
-		who.SetRestrained(True)
-		who.SetDontMove(True)
-		self.AnimationApply(who,"ZazAPC001")
-		self.SightEventRegister(who)
-		self.OutfitApply(who,None)
-		self.OutfitApply(who,None,true)
+	If(What == self.dcc_dm_PackageDoNothing)
+		Who.SetRestrained(TRUE)
+		Who.SetDontMove(TRUE)
+		self.PersistHackApply(Who)
+		self.AnimationApply(Who,"ZazAPC001")
+		self.SightEventRegister(Who)
+		self.OutfitApply(Who,self.dcc_dm_OutfitNone)
+		self.OutfitApply(Who,self.dcc_dm_OutfitNone,TRUE)
 	EndIf
 
-	ActorUtil.AddPackageOverride(who,what,priority)
-	who.EvaluatePackage()
+	ActorUtil.AddPackageOverride(Who,What,Priority)
+	Who.EvaluatePackage()
 
-	StorageUtil.FormListAdd(what,"DisplayModel.Package.Users",who)
+	StorageUtil.FormListAdd(what,"DisplayModel.Package.Users",Who)
 
 	Return
 EndFunction
 
-Function BehaviourClear(Actor who, Package what)
+Function BehaviourClear(Actor Who, Package What)
 ;; remove the specified package from the overrides of the specified actor. it
 ;; will also clear the update registration hack if the package being removed
 ;; is the display model base nothing package.
 
-	ActorUtil.RemovePackageOverride(who,what)
-	who.EvaluatePackage()
+	ActorUtil.RemovePackageOverride(Who,What)
+	Who.EvaluatePackage()
 
-	If(what == self.dcc_dm_PackageDoNothing)
-		who.UnregisterForUpdate()
-		who.SetRestrained(False)
-		who.SetDontMove(False)
-		self.SightEventUnregister(who)
-		self.OutfitRestore(who)
+	If(What == self.dcc_dm_PackageDoNothing)
+		Who.SetRestrained(FALSE)
+		Who.SetDontMove(FALSE)
+		self.PersistHackClear(Who)
+		self.SightEventUnregister(Who)
+		self.OutfitRestore(Who)
 	EndIf
 
-	StorageUtil.FormListRemove(what,"DisplayModel.Package.Users",who,True)
-
+	StorageUtil.FormListRemove(what,"DisplayModel.Package.Users",Who,TRUE)
 	Return
 EndFunction
 
@@ -446,27 +505,26 @@ EndFunction
 
 ******************************************************************************/;
 
-Function OutfitApply(Actor who, Outfit what, Bool sleep=false)
+Function OutfitApply(Actor Who, Outfit What, Bool Sleep=false)
 {Set an outfit for a specified actor. if it is the first time used on the actor
 then it will mark down what the original outfit was so that it can be restored
 later.}
 
-	If(StorageUtil.GetFormValue(who,"DisplayModel.Actor.OutfitNormal") == None)
-		StorageUtil.SetFormValue(who,"DisplayModel.Actor.OutfitNormal",who.GetActorBase().GetOutfit(false))
-		StorageUtil.SetFormValue(who,"DisplayModel.Actor.OutfitSleep",who.GetActorBase().GetOutfit(true))
+	If(StorageUtil.GetFormValue(Who,"DisplayModel.Actor.OutfitNormal") == None)
+		StorageUtil.SetFormValue(Who,"DisplayModel.Actor.OutfitNormal",Who.GetActorBase().GetOutfit(FALSE))
+		StorageUtil.SetFormValue(Who,"DisplayModel.Actor.OutfitSleep",Who.GetActorBase().GetOutfit(TRUE))
 	EndIf
 
-	who.SetOutfit(what,sleep)
-
+	who.SetOutfit(What,Sleep)
 	Return
 EndFunction
 
-Function OutfitRestore(Actor who)
+Function OutfitRestore(Actor Who)
 {restore an outfit that was stored for the specified actor, if it had been
 saved previously.}
 
-	who.SetOutfit(StorageUtil.GetFormValue(who,"DisplayModel.Actor.OutfitNormal") as Outfit, false)
-	who.SetOutfit(StorageUtil.GetFormValue(who,"DisplayModel.Actor.OutfitSleep") as Outfit, true)
+	Who.SetOutfit(StorageUtil.GetFormValue(Who,"DisplayModel.Actor.OutfitNormal") as Outfit, FALSE)
+	Who.SetOutfit(StorageUtil.GetFormValue(Who,"DisplayModel.Actor.OutfitSleep") as Outfit, TRUE)
 
 	Return
 EndFunction
@@ -483,74 +541,74 @@ EndFunction
 Function CloneMenuShow()
 {Show the cloner menu.}
 
-	Actor target = Game.GetCurrentCrosshairRef() as Actor
-	Bool targetenable
-	String targetlabel
-	bool cloneenable
-	string clonelabel
-	Int result
+	Actor Target = Game.GetCurrentCrosshairRef() as Actor
+	Bool TargetEnable
+	String TargetLabel
+	bool CloneEnable
+	string CloneLabel
+	Int Result
 
 	If(target != None)
-		targetenable = True
-		targetlabel = "Target " + target.GetDisplayName()
+		TargetEnable = TRUE
+		TargetLabel = "Target " + Target.GetDisplayName()
 	Else
-		targetenable = False
-		targetlabel = "[No Target]"
+		TargetEnable = FALSE
+		TargetLabel = "[No Target]"
 	EndIf
 
 	If(self.CloneActorGet(self.Player) != None)
-		cloneenable = True
-		clonelabel = "Spawn " + self.CloneActorGet(self.Player).GetDisplayName()
+		CloneEnable = TRUE
+		CloneLabel = "Spawn " + self.CloneActorGet(self.Player).GetDisplayName()
 	Else
-		cloneenable = False
-		clonelabel = "[No Source Selected]"
+		CloneEnable = FALSE
+		CloneLabel = "[No Source Selected]"
 	EndIf
 
 	UIExtensions.InitMenu("UIWheelMenu")
-	self.WheelMenuSet(0,targetlabel,"Mark the target for cloning.",targetenable)
-	self.WheelMenuSet(1,"Target Self","Mark yourself for cloning.",True)
-	self.WheelMenuSet(4,"Set Location","Mark your spot and angle for spawning the next clone.",True)
-	self.WheelMenuSet(7,clonelabel,"Spawn a clone at the specified location.",cloneenable)
-	result = UIExtensions.OpenMenu("UIWheelMenu")
+	self.WheelMenuSet(0,TargetLabel,"Mark the target for cloning.",TargetEnable)
+	self.WheelMenuSet(1,"Target Self","Mark yourself for cloning.",TRUE)
+	self.WheelMenuSet(4,"Set Location","Mark your spot and angle for spawning the next clone.",TRUE)
+	self.WheelMenuSet(7,CloneLabel,"Spawn a clone at the specified location.",CloneEnable)
+	Result = UIExtensions.OpenMenu("UIWheelMenu")
 
-	If(result == 0)
-		self.CloneActorCopy(self.Player,target)
-	ElseIf(result == 1)
+	If(Result == 0)
+		self.CloneActorCopy(self.Player,Target)
+	ElseIf(Result == 1)
 		self.CloneActorCopy(self.Player,self.Player)
-	ElseIf(result == 4)
+	ElseIf(Result == 4)
 		self.CloneMarkerPlace(self.Player)
-	ElseIf(result == 7)
+	ElseIf(Result == 7)
 		self.CloneActorPaste(self.Player)
 	EndIf
 
 	Return
 EndFunction
 
-Function CloneMarkerClear(Actor who)
+Function CloneMarkerClear(Actor Who)
 {Clear the location saved for clone spawning.}
 
-	ObjectReference loc = self.CloneMarkerGet(who)
+	ObjectReference Here = self.CloneMarkerGet(Who)
 
-	If(loc != None)
-		loc.Delete()
+	If(Here != None)
+		Here.Delete()
 	EndIf
 
-	StorageUtil.UnsetFormValue(who,"DisplayModel.Clone.Marker")
+	StorageUtil.UnsetFormValue(Who,"DisplayModel.Clone.Marker")
 
-	If(who == self.Player)
+	If(Who == self.Player)
 		self.Print("Your clone location has been cleared.")
 	EndIf
 
 	Return
 EndFunction
 
-ObjectReference Function CloneMarkerGet(Actor who)
+ObjectReference Function CloneMarkerGet(Actor Who)
 {Fetch a location we previously jotted down.}
 
-	Return StorageUtil.GetFormValue(who,"DisplayModel.Clone.Marker") as ObjectReference
+	Return StorageUtil.GetFormValue(Who,"DisplayModel.Clone.Marker") as ObjectReference
 EndFunction
 
-ObjectReference Function CloneMarkerPlace(Actor who)
+ObjectReference Function CloneMarkerPlace(Actor Who)
 {place a marker in the world where clones will be pasted to. this is derived
 from the casters location and angle. stand where you want the actor to be and
 the direction you want them to face prior to using this. each actor can place
@@ -558,26 +616,26 @@ their own paste marker. for i don't know, if some reason skyrim becomes
 multiplayer tomorrow or someshit. this marker will also be returned as well as
 stored in storage util.}
 
-	ObjectReference loc
+	ObjectReference Here
 
-	loc = self.CloneMarkerGet(who)
-	If(loc != None)
-		loc.Delete()
+	Here = self.CloneMarkerGet(Who)
+	If(Here != None)
+		Here.Delete()
 	EndIf
 
-	loc = who.PlaceAtMe(self.StaticX,1,True,False)
-	self.CloneMarkerSet(who,loc)
+	Here = Who.PlaceAtMe(self.StaticX,1,TRUE,FALSE)
+	self.CloneMarkerSet(Who,Here)
 
-	Return loc
+	Return Here
 EndFunction
 
-Function CloneMarkerSet(Actor who, ObjectReference what)
+Function CloneMarkerSet(Actor Who, ObjectReference What)
 {Jot down a location where we want clones to spawn. You can use this to define
 a location which was not created by CloneMarkerPlace.}
 
-	StorageUtil.SetFormValue(who,"DisplayModel.Clone.Marker",what)
+	StorageUtil.SetFormValue(Who,"DisplayModel.Clone.Marker",What)
 
-	If(who == self.Player)
+	If(Who == self.Player)
 		self.Print("Your clone location has been set.")
 	EndIf
 
@@ -587,73 +645,73 @@ EndFunction
 ;;;;;;;;
 ;;;;;;;;
 
-Function CloneActorClear(Actor who)
+Function CloneActorClear(Actor Who)
 {Clear the saved actor.}
 
-	StorageUtil.UnsetFormValue(who,"DisplayModel.Clone.Actor")
+	StorageUtil.UnsetFormValue(Who,"DisplayModel.Clone.Actor")
 
-	If(who == self.Player)
+	If(Who == self.Player)
 		self.Print("Your clone tool has been cleared.")
 	EndIf
 
 	Return
 EndFunction
 
-Function CloneActorCopy(Actor who, Actor source)
+Function CloneActorCopy(Actor Who, Actor Source)
 {Save an actor we want to copy.}
 
-	StorageUtil.SetFormValue(who,"DisplayModel.Clone.Actor",source)
+	StorageUtil.SetFormValue(Who,"DisplayModel.Clone.Actor",Source)
 
-	If(who == self.Player)
-		self.Print(source.GetDisplayName() + " has been marked for cloning.")
+	If(Who == self.Player)
+		self.Print(Source.GetDisplayName() + " has been marked for cloning.")
 	EndIf
 
 	Return
 EndFunction
 
-Actor Function CloneActorGet(Actor who)
+Actor Function CloneActorGet(Actor Who)
 {Fetch the actor we wanted to clone.}
 
-	Return StorageUtil.GetFormValue(who,"DisplayModel.Clone.Actor") as Actor
+	Return StorageUtil.GetFormValue(Who,"DisplayModel.Clone.Actor") as Actor
 EndFunction
 
-Actor Function CloneActorPaste(Actor who)
+Actor Function CloneActorPaste(Actor Who)
 {Place a new actor in the world that is a copy of our source.}
 
-	Actor source = self.CloneActorGet(who)
-	ObjectReference loc = self.CloneMarkerGet(who)
+	Actor Source = self.CloneActorGet(Who)
+	ObjectReference Here = self.CloneMarkerGet(Who)
 
 	;; make sure we had an actor.
-	If(source == None)
-		If(who == self.Player)
+	If(Source == None)
+		If(Who == self.Player)
 			self.Print("You have not selected any actors for cloning.")
 		EndIf
 		Return None
 	EndIf
 
 	;; make sure we had a drop point. if not, drop one.
-	If(loc == None)
-		loc = self.CloneMarkerPlace(who)
+	If(Here == None)
+		Here = self.CloneMarkerPlace(Who)
 	EndIf
 
 	;;;;;;;;
 	;;;;;;;;
 
 	;; place a new object at our location.
-	Actor clone = loc.PlaceAtMe(source.GetActorBase(),1,True,False) as Actor
+	Actor Clone = Here.PlaceAtMe(Source.GetActorBase(),1,TRUE,FALSE) as Actor
 	If(clone == None)
 		self.Print("Creating a clone fucked up for some reason.")
 		Return None
 	EndIf
 
 	;; stand there like a tool doing nothing with nothing.
-	self.BehaviourApply(clone,self.dcc_dm_PackageDoNothing)
-	clone.RemoveAllItems()
+	self.BehaviourApply(Clone,self.dcc_dm_PackageDoNothing)
+	Clone.RemoveAllItems()
 
 	;; and copy the source armor.
-	self.StoreEquippedArmor(who,clone)
-	self.EquipStoredArmor(clone)
+	self.StoreEquippedArmor(Who,Clone)
+	self.EquipStoredArmor(Clone)
 
-	Return clone
+	Return Clone
 EndFunction
 
