@@ -1,0 +1,37 @@
+Version 100
+
+''''''''
+''''''''
+
+' Display Model 2
+' darkcee.legit@gmail.com
+
+' almost if not all of the animations in use by this are from the zaz animation pack.
+' i am no way am attempting to take credit for them. i am just making them a shittone
+' easier to use by giving them new animation names and adding animation objects to all
+' the ones that are missing them.
+
+' the animation objects also almost all if not all come from zaz's pack. basically
+' zaz is awesome and i am an mooch.
+
+''''''''
+''''''''
+
+' spitroasting poses.
+' 1 = legs bent, 2 = legs crossed, 3 = legs straight
+' a = face down, b = rotating, c = face down w fire, d = rotating w fire
+
+o -k dcc-dm-spitroast-f-1a ..\ZaZAnimationPack\ZazAPC302.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-spitroast-f-1b ..\ZaZAnimationPack\ZazAPC301.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-spitroast-f-1c ..\ZaZAnimationPack\ZazAPC302.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBoundSpitFire dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR 
+o -k dcc-dm-spitroast-f-1d ..\ZaZAnimationPack\ZazAPC301.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBoundSpitFire dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+
+o -k dcc-dm-spitroast-f-2a ..\ZaZAnimationPack\ZazAPC304.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-spitroast-f-2b ..\ZaZAnimationPack\ZazAPC303.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-spitroast-f-2c ..\ZaZAnimationPack\ZazAPC304.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBoundSpitFire dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-spitroast-f-2d ..\ZaZAnimationPack\ZazAPC303.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBoundSpitFire dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+
+o -k dcc-dm-spitroast-f-3a ..\ZaZAnimationPack\ZazAPC306.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-spitroast-f-3b ..\ZaZAnimationPack\ZazAPC305.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-spitroast-f-3c ..\ZaZAnimationPack\ZazAPC306.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBoundSpitFire dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-spitroast-f-3d ..\ZaZAnimationPack\ZazAPC305.hkx dcc_dm_AobjBoundSpitPole dcc_dm_AobjBoundSpitPit dcc_dm_AobjBoundSpitFire dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
