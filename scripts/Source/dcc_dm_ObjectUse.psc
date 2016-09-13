@@ -6,13 +6,6 @@ MiscObject Property PickupItem Auto
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Event OnLoad()
-	Return
-EndEvent
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 Event OnActivate(ObjectReference Who)
 {what to do when this object is interacted with.}
 
@@ -36,30 +29,34 @@ Event OnActivate(ObjectReference Who)
 		EndIf
 	Else
 		self.OnActivate_Use(Who as Actor)
+		(Who as Actor).SetDoingFavor(FALSE)
 	EndIf
 
 	Return
 EndEvent
 
 Function OnActivate_Use(Actor Who)
+{when this object is selected for use by an actor.}
 
 	dcc_dm_QuestController DM = dcc_dm_QuestController.Get()
 
 	If(Who == DM.Player)
 		DM.SelfBondageEnable(FALSE)
-		DM.ActorUsingSet(Who as Actor, self)
-		DM.BehaviourApply(Who as Actor, IdlePackage)
+		DM.ActorUsingSet(Who, self)
+		DM.BehaviourApply(Who, self.IdlePackage, TRUE)
 		self.RegisterForControl("Jump")
 	Else
-		DM.ActorUsingSet(Who as Actor, self)
-		DM.BehaviourApply(Who as Actor, IdlePackage)
-		DM.ActorArousalRegister(Who as Actor)
+		DM.ActorArousalRegister(Who)
+		DM.ActorUsingSet(Who, self)
+		DM.BehaviourApply(Who, self.IdlePackage, TRUE)
 	EndIf
 
+	DM.ActorMarkerPlaceAt(Who,Who,TRUE)
 	Return
 EndFunction
 
 Function OnActivate_Move(Actor Who)
+{when this object is selected to be moved by the player.}
 
 	dcc_dm_QuestController DM = dcc_dm_QuestController.Get()
 
@@ -68,11 +65,15 @@ Function OnActivate_Move(Actor Who)
 EndFunction
 
 Function OnActivate_PickUp(Actor Who)
+{when this object is selected to be picked up by the player.}
 
 	dcc_dm_QuestController DM = dcc_dm_QuestController.Get()
-
 	DM.ControlModeSet(DM.KeyModeNone)
+
+	;; give the player one.
 	Who.AddItem(self.PickupItem,1)
+
+	;; then kill off the one in the game world.
 	self.Disable(TRUE)
 	self.Delete()
 
@@ -83,6 +84,8 @@ EndFunction
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Event OnControlUp(String Ctrl, Float Time)
+{if the player used this device then we watch for the jump command to
+release them from it.}
 
 		dcc_dm_QuestController DM = dcc_dm_QuestController.Get()
 

@@ -75,9 +75,14 @@ o -k dcc-dm-wheel-1 ..\ZaZAnimationPack\ZazAPCAO263.hkx AOZaZWheelTilt dcc_dm_Ao
 o -k dcc-dm-wheel-2 ..\ZaZAnimationPack\ZazAPCAO261.hkx AOZaZWheelLow dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
 o -k dcc-dm-wheel-3 ..\ZaZAnimationPack\ZazAPCAO262.hkx AOZaZWheelHigh dcc_dm_AobjBindingRopeAnkleL dcc_dm_AobjBindingRopeAnkleR dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
 
-' doll stand
+' doll stand by darkconsole
 
 o -k dcc-dm-dollstand-a1 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandA1
 o -k dcc-dm-dollstand-a2 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandA2
 o -k dcc-dm-dollstand-b1 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandB1
 o -k dcc-dm-dollstand-b2 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandB2
+
+' rope pony by darkconsole
+
+o -k dcc-dm-ropepony-a1a ..\ZaZAnimationPack\ZazAPC001.hkx dcc_dm_AobjRopePonyA1 dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-ropepony-a1b ..\ZaZAnimationPack\ZazAPC002.hkx dcc_dm_AobjRopePonyA1 dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR

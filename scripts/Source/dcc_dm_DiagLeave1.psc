@@ -6,6 +6,7 @@ Scriptname dcc_dm_DiagLeave1 Extends TopicInfo Hidden
 Function Fragment_0(ObjectReference akSpeakerRef)
 Actor akSpeaker = akSpeakerRef as Actor
 ;BEGIN CODE
+DM.ActorUsingSet(akSpeaker,None)
 DM.BehaviourClear(akSpeaker,TRUE)
 DM.ControlModeSet(DM.KeyModeNone)
 ;END CODE

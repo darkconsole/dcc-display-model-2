@@ -37,7 +37,8 @@ FormList Property dcc_dm_ListPoseRestrainedTo Auto
 FormList Property dcc_dm_ListPoseRopeBondage Auto
 FormList Property dcc_dm_ListPoseSpitRoast Auto
 FormList Property dcc_dm_ListPoseSubmit Auto
-FormList Property dcc_dm_ListDollStand Auto
+FormList Property dcc_dm_ListPoseDollStand Auto
+FormList Property dcc_dm_ListPoseRopePony Auto
 
 ImageSpaceModifier Property dcc_dm_ImodControlMode Auto
 ImageSpaceModifier Property dcc_dm_ImodControlModeLongPress Auto
@@ -512,6 +513,8 @@ Function ControlModeSet(String Mode)
 
 	String OldMode = self.ControlModeGet()
 
+	self.PrintDebug("Control Mode: " + OldMode + " => " + Mode)
+
 	;; doing nothing if we didn't actually change modes.
 	If(OldMode == Mode)
 		Return
@@ -637,7 +640,7 @@ Function ControlModeSet_ModeMove()
 	self.RegisterForControl("Shout")
 
 	If(self.OptTutorials)
-	String Msg = ""
+		String Msg = ""
 		Msg += "MOVE MODE ----\n"
 		Msg += "Short Press SHOUT to command  them to move to your exact position and angle.\n"
 		Msg += "Long Press SHOUT to leave move mode.\n"
@@ -704,6 +707,7 @@ Function ControlModeMoveStart(Actor Who)
 
 	self.PrintDebug("Move Mode Start")
 
+	Who.SetVehicle(None)
 	self.ControlActorSet(Who)
 	self.ControlModeSet(self.KeyModeMove)
 	Return
@@ -724,6 +728,55 @@ Function ControlModeMoveCommand()
 	Bool Restrain = self.BehaviourRestrainGet(Who)
 	ObjectReference Device = self.ActorUsingGet(Who)
 	ObjectReference Where = self.ActorMarkerPlaceAt(Who,self.Player)
+
+	Utility.Wait(1.0)
+	self.BehaviourRestrainSet(Who,FALSE)
+	self.AlignObject(Who,Where)
+
+	If(Restrain)
+		self.BehaviourRestrainSet(Who,Restrain)
+		Who.SetVehicle(Where)
+	EndIf
+
+	If(Device)
+		self.PrintDebug("Moving " + Device.GetName())
+		self.AlignObject(Device,Where)
+	EndIf
+
+
+	;/*
+	so this code was pretty neat. it caused the actor to walk to the
+	location you commanded them to. however, it has a serious problem
+	and that problem is just the shitty PathToReference function provided
+	by bethesda. the problem is that when they are interupted they do
+	not continue. which is fine, because i snap the actor to their location
+	afterwards just in case. but here is the real problem - sometimes
+	when they are interupted THE FUNCTION NEVER RETURNS. it just hangs
+	for fucking ever. i am not the only one to notice this, i found several
+	posts online about it, and even more which just in general were like
+	that function sucks use a package instead why wouldn't you use a package.
+	i was able to cause this quite often purely just by being in the way when
+	they wanted to move. they would be like "ugh hey watch it" and then stand
+	there forever and i would see in SaveTool this thread locked in this
+	function.
+
+	Var:  dcc_dm_questcontroller:  392271D8
+	Var[1]:  Actor:  1284D4E0
+	Var[2]:  bool:  0
+	Var[3]:  string:  Pathing Command Issued to Carlotta Valentia
+	Name:      WIDeadBodyCleanupScript
+	Name:      Actor
+	Event:      PathToReference
+
+	i can't use a package because i need shit done without quest aliases so
+	that i can have unlimited things. packages are so limited in what you
+	can do with them without binding them to a quest.
+
+	so unfortunately, no more walking for now. they will just snap there
+	instead.
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	;; keep the actor from sandboxing, but let them move.
 	self.ActorArousalUnregister(Who)
@@ -751,6 +804,10 @@ Function ControlModeMoveCommand()
 		self.BehaviourApply(Who,Pkg,Restrain)
 		self.ActorArousalRegister(Who)
 	EndIf
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	*/;
 
 	self.PrintDebug("Move Command Done " + Who.GetDisplayName())
 	Return
@@ -792,11 +849,17 @@ Function ControlModePoseStart(Actor Who, String ModeName, FormList PoseList)
 
 	self.PrintDebug(ModeName + " Pose Mode Enabled")
 
+	;; prepare pose mode.
 	self.ControlPackageIterSet(-1)
 	self.ControlPackageListSet(PoseList)
 	self.ControlActorSet(Who)
 	self.ControlModeSet(self.KeyModePose)
+
+	;; prepare actor.
+	self.ActorUsingSet(Who,None)
 	self.ActorArousalRegister(Who)
+	self.ActorMarkerPlaceAt(Who,Who,TRUE)
+	self.BehaviourRestrainSet(Who,TRUE)
 
 	self.ControlModePoseNext()
 	Return
@@ -857,8 +920,14 @@ Function PoseTransformApply(Actor Who, Float[] Value)
 {apply an NIO transform}
 
 	Int IsFemale = Who.GetLeveledActorBase().GetSex()
+	Float ActorScale = Who.GetScale()
 
 	;; add the offset for this animation.
+	if(ActorScale < 1.0)
+		self.PrintDebug(Who.GetDisplayName() + " scale is " + ActorScale)
+		Value[2] = Value[2] * (ActorScale * ActorScale * ActorScale)
+	EndIf
+
 	NiOverride.AddNodeTransformPosition(Who,FALSE,IsFemale,"NPC","DM2.PoseTransform", Value)
 
 	;; cancel out nio hh. based on how ash baby is doing it in sexlab, seemed pretty smrt.
@@ -874,8 +943,6 @@ Function PoseTransformApply(Actor Who, Float[] Value)
 
 		NiOverride.AddNodeTransformPosition(Who,FALSE,IsFemale,"NPC","DM2.PoseCancelNIOHH",HH)
 		NiOverride.AddNodeTransformScale(Who,FALSE,IsFemale,"NPC","DM2.PoseCancelNIOHH",HS)
-	Else
-		self.PrintDebug("No NIO HH Found")
 	EndIf
 
 	NiOverride.UpdateNodeTransform(Who,FALSE,IsFemale,"NPC")
@@ -1126,16 +1193,26 @@ is true.}
 		Who.EvaluatePackage()
 	EndIf
 
-	If(self.ActorUsingGet(Who) != None)
-		self.ActorUsingGet(Who).Enable(TRUE)
-		self.ActorUsingSet(Who,None)
-	EndIf
+	;; reset actor behaviours.
 
+	Who.SetVehicle(None)
+	self.BehaviourRestrainSet(Who,FALSE)
 	self.ActorArousalUnregister(Who)
+
 	If(!Full)
 		Utility.Wait(0.1)
 		self.AnimationReset(Who)
 		Return
+	EndIf
+
+	;;;;;;;;;;;;;;;;
+	;;;;;;;;;;;;;;;;
+
+	;; reset their furniture
+
+	If(self.ActorUsingGet(Who) != None)
+		self.ActorUsingGet(Who).Enable(TRUE)
+		self.ActorUsingSet(Who,None)
 	EndIf
 
 	;; remove the idle package.
@@ -1147,10 +1224,8 @@ is true.}
 		Game.SetPlayerAIDriven(FALSE)
 	Else
 		self.PersistHackClear(Who)
-		self.BehaviourRestrainSet(Who,FALSE)
 		self.ActorOutfitResume(Who)
 	EndIf
-
 
 	Who.RemoveFromFaction(self.dcc_dm_FactionControl)
 
@@ -1347,7 +1422,7 @@ ObjectReference Function ActorMarkerGet(Actor Who)
 	Return StorageUtil.GetFormValue(Who,self.KeyActorMarker) as ObjectReference
 EndFunction
 
-ObjectReference Function ActorMarkerPlaceAt(Actor Who, ObjectReference Where)
+ObjectReference Function ActorMarkerPlaceAt(Actor Who, ObjectReference Where, Bool Bind=FALSE)
 {place a marker for the actor at the specified location.}
 
 	ObjectReference Marker = self.ActorMarkerGet(Who) as ObjectReference
@@ -1358,6 +1433,10 @@ ObjectReference Function ActorMarkerPlaceAt(Actor Who, ObjectReference Where)
 		Marker = Where.PlaceAtMe(self.StaticX,1,TRUE)
 		self.AlignObject(Marker,Where)
 		StorageUtil.SetFormValue(Who,self.KeyActorMarker,Marker)
+	EndIf
+
+	If(Bind)
+		Who.SetVehicle(Marker)
 	EndIf
 
 	Return Marker
@@ -1382,16 +1461,18 @@ contains the animated equip version.}
 		Who.RemoveFromFaction(self.dcc_dm_FactionUsingObject)
 
 		;; were we using something before?
-		What = self.ActorUsingGet(Who)
-		If(What != None)
-			What.Enable(FALSE)
+		ObjectReference Old = self.ActorUsingGet(Who)
+		If(Old != None)
+			self.PrintDebug("Enabling " + Old.GetDisplayName())
+			Old.Enable(FALSE)
 		EndIf
 	Else
-		Who.AddToFaction(self.dcc_dm_FactionUsingObject)	
+		self.PrintDebug("Disabling " + What.GetDisplayName())
+		Who.AddToFaction(self.dcc_dm_FactionUsingObject)
 		What.Disable(FALSE)
 		self.AlignObject(Who,What)
 	EndIf
-
+	
 	StorageUtil.SetFormValue(Who,self.KeyActorUsing,What)
 	Return
 EndFunction
@@ -1518,14 +1599,14 @@ Function ActorArousalUpdate(Actor Who)
 	If(Aroused && self.OptArousedTickExposure)
 		;; exposure goes up if exhibitionist, down otherwise. that was decided
 		;; by the tick value get function.
-		self.PrintDebug(Who.GetDisplayName() + " Arousal Exposure Mod " + Tick)
+		;;self.PrintDebug(Who.GetDisplayName() + " Arousal Exposure Mod " + Tick)
 		Aroused.UpdateActorExposure(Who,(Tick as Int)," Arousal Mod By DM2")
 	EndIf
 
 	If(Aroused && self.OptArousedTickTimeRate)
 		;; time rate however always goes down.
 		Float TimeRate = ((Math.Abs(Tick) / 4) * -1) 
-		self.PrintDebug(Who.GetDisplayName() + " Arousal TimeRate " + StorageUtil.GetFloatValue(Who,"SLAroused.TimeRate") + " Mod " + TimeRate)
+		;;self.PrintDebug(Who.GetDisplayName() + " Arousal TimeRate " + StorageUtil.GetFloatValue(Who,"SLAroused.TimeRate") + " Mod " + TimeRate)
 		;;Aroused.UpdateActorTimeRate(Who,TimeRate)
 		StorageUtil.AdjustFloatValue(Who,"SLAroused.TimeRate",TimeRate)
 		If(StorageUtil.GetFloatValue(Who,"SLAroused.TimeRate") < 0)
@@ -1662,37 +1743,44 @@ Function MenuPoseListSelector(Actor Who)
 		Return
 	EndIf
 
+	If(self.ActorUsingGet(Who) != None)
+		self.Print(Who.GetDisplayName() + " is currently using a piece of furniture.")
+		Return
+	EndIf
+
 	UIListMenu Menu = UIExtensions.GetMenu("UIListMenu",TRUE) as UIListMenu
 	String Result
 
-	String[] Name = new String[12]
-	FormList[] Pkg = new FormList[12]
-	String[] Label = new String[12]
+	String[] Name = new String[13]
+	FormList[] Pkg = new FormList[13]
+	String[] Label = new String[13]
 
-	Name[0] = "Caged"
-	Pkg[0] = self.dcc_dm_ListPoseCage
-	Name[1]  = "Chained"
-	Pkg[1] = self.dcc_dm_ListPoseChain
-	Name[2]  = "Cross"
-	Pkg[2] = self.dcc_dm_ListPoseCross
-	Name[3]  = "Crux"
-	Pkg[3] = self.dcc_dm_ListPoseCrux
-	Name[4] = "Doll Stand"
-	Pkg[4] = self.dcc_dm_ListDollStand
-	Name[5]  = "Misc Dungeon"
-	Pkg[5] = self.dcc_dm_ListPoseMisc
-	Name[6]  = "Pillory"
-	Pkg[6] = self.dcc_dm_ListPosePillory
-	Name[7]  = "Post"
-	Pkg[7] = self.dcc_dm_ListPosePost
-	Name[8]  = "Restrained Post/Wall"
-	Pkg[8] = self.dcc_dm_ListPoseRestrainedTo
-	Name[9]  = "Rope Bondage"
-	Pkg[9] = self.dcc_dm_ListPoseRopeBondage
-	Name[10]  = "Spit Roasted"
-	Pkg[10] = self.dcc_dm_ListPoseSpitRoast
-	Name[11] = "Submission"
-	Pkg[11] = self.dcc_dm_ListPoseSubmit
+	Name[0] = "DM2 - Doll Stand"
+	Pkg[0] = self.dcc_dm_ListPoseDollStand
+	Name[1] = "DM2 - Rope Pony"
+	Pkg[1] = self.dcc_dm_ListPoseRopePony
+	Name[2] = "ZAP - Caged"
+	Pkg[2] = self.dcc_dm_ListPoseCage
+	Name[3]  = "ZAP - Chained"
+	Pkg[3] = self.dcc_dm_ListPoseChain
+	Name[4]  = "ZAP - Cross"
+	Pkg[4] = self.dcc_dm_ListPoseCross
+	Name[5]  = "ZAP - Crux"
+	Pkg[5] = self.dcc_dm_ListPoseCrux
+	Name[6]  = "ZAP - Misc Dungeon"
+	Pkg[6] = self.dcc_dm_ListPoseMisc
+	Name[7]  = "ZAP - Pillory"
+	Pkg[7] = self.dcc_dm_ListPosePillory
+	Name[8]  = "ZAP - Post"
+	Pkg[8] = self.dcc_dm_ListPosePost
+	Name[9]  = "ZAP - Restrained Post/Wall"
+	Pkg[9] = self.dcc_dm_ListPoseRestrainedTo
+	Name[10]  = "ZAP - Rope Bondage"
+	Pkg[10] = self.dcc_dm_ListPoseRopeBondage
+	Name[11]  = "ZAP - Spit Roasted"
+	Pkg[11] = self.dcc_dm_ListPoseSpitRoast
+	Name[12] = "ZAP - Submission"
+	Pkg[12] = self.dcc_dm_ListPoseSubmit
 
 	Menu.AddEntryItem("[[ Cancel ]]")
 

@@ -6,9 +6,16 @@ Scriptname dcc_dm_DiagCome1 Extends TopicInfo Hidden
 Function Fragment_0(ObjectReference akSpeakerRef)
 Actor akSpeaker = akSpeakerRef as Actor
 ;BEGIN CODE
-DM.BehaviourDefault(akSpeaker)
-Utility.Wait(1.0)
+
+If(!akSpeaker.IsInFaction(DM.dcc_dm_FactionControl))
+	DM.BehaviourDefault(akSpeaker)
+	Utility.Wait(1.0)
+EndIf
+
+DM.ActorUsingSet(akSpeaker,None)
 DM.BehaviourApply(akSpeaker,DM.dcc_dm_PackageFollow)
+DM.AnimationReset(akSpeaker)
+
 ;END CODE
 EndFunction
 ;END FRAGMENT
