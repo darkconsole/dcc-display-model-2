@@ -10,6 +10,9 @@ Event OnEffectStart(Actor To, Actor From)
 			DM.SelfBondageDisable()
 		Else
 			DM.SelfBondageEnable(TRUE)
+			If(DM.OptTutorials)
+				Debug.MessageBox("Unequip and Re-Equip this item to dismount.")
+			EndIf
 		EndIf
 	EndIf
 

@@ -82,7 +82,9 @@ o -k dcc-dm-dollstand-a2 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandA
 o -k dcc-dm-dollstand-b1 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandB1
 o -k dcc-dm-dollstand-b2 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandB2
 
-' rope pony by darkconsole
+' wood/rope pony by darkconsole
 
 o -k dcc-dm-ropepony-a1a ..\ZaZAnimationPack\ZazAPC001.hkx dcc_dm_AobjRopePonyA1 dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
 o -k dcc-dm-ropepony-a1b ..\ZaZAnimationPack\ZazAPC002.hkx dcc_dm_AobjRopePonyA1 dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-woodpony-a1a ..\ZaZAnimationPack\ZazAPC001.hkx dcc_dm_AobjWoodPonyA1 dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+o -k dcc-dm-woodpony-a1b ..\ZaZAnimationPack\ZazAPC002.hkx dcc_dm_AobjWoodPonyA1 dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR

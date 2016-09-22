@@ -30,8 +30,8 @@ doll-stand-a1-static
    collision file, and static.nif (barrel01.nif from vanilla skyrim) to add
    proper collsion data to the file.
 4. edit collsion shape material type in nifskope if desired to be relevant.
-4. convert NiNode to BSFadeNode in nifskope
-5. only check Has Collision in the BSX field.
+5. convert NiNode to BSFadeNode in nifskope
+6. only check Has Collision in the BSX field.
 
 
 

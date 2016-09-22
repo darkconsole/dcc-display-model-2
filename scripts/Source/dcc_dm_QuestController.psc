@@ -1253,7 +1253,7 @@ automatically apply the persist hack to the actor as well.}
 	EndIf
 
 	Who.AddToFaction(self.dcc_dm_FactionControl)
-	Who.SheatheWeapon()
+	;;Who.SheatheWeapon()
 	ActorUtil.AddPackageOverride(Who,self.dcc_dm_PackageDoNothing,99)
 	Who.EvaluatePackage()
 	Return
@@ -1286,6 +1286,10 @@ Function BehaviourRestrainSet(Actor Who, Bool Restrain)
 {set if restraint was needed.}
 
 	Int Val
+
+	If(Who == self.Player)
+		Return
+	EndIf
 
 	If(Restrain)
 		Val = 1
@@ -1757,7 +1761,7 @@ Function MenuPoseListSelector(Actor Who)
 
 	Name[0] = "DM2 - Doll Stand"
 	Pkg[0] = self.dcc_dm_ListPoseDollStand
-	Name[1] = "DM2 - Rope Pony"
+	Name[1] = "DM2 - Wooden Pony"
 	Pkg[1] = self.dcc_dm_ListPoseRopePony
 	Name[2] = "ZAP - Caged"
 	Pkg[2] = self.dcc_dm_ListPoseCage

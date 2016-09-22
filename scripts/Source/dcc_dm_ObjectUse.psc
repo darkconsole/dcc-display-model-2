@@ -43,8 +43,12 @@ Function OnActivate_Use(Actor Who)
 	If(Who == DM.Player)
 		DM.SelfBondageEnable(FALSE)
 		DM.ActorUsingSet(Who, self)
-		DM.BehaviourApply(Who, self.IdlePackage, TRUE)
+		DM.BehaviourApply(Who, self.IdlePackage, FALSE)
 		self.RegisterForControl("Jump")
+
+		If(DM.OptTutorials)
+			Debug.MessageBox("Press JUMP to dismount.")
+		EndIf
 	Else
 		DM.ActorArousalRegister(Who)
 		DM.ActorUsingSet(Who, self)
