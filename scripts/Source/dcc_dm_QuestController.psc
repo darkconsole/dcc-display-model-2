@@ -921,10 +921,11 @@ Function PoseTransformApply(Actor Who, Float[] Value)
 
 	Int IsFemale = Who.GetLeveledActorBase().GetSex()
 	Float ActorScale = Who.GetScale()
+	self.PrintDebug(Who.GetDisplayName() + " scale is " + ActorScale)
 
 	;; add the offset for this animation.
 	if(ActorScale < 1.0)
-		self.PrintDebug(Who.GetDisplayName() + " scale is " + ActorScale)
+		self.PrintDebug(Who.GetDisplayName() + " scale to " + Value[2])	
 		Value[2] = Value[2] * (ActorScale * ActorScale * ActorScale)
 	EndIf
 

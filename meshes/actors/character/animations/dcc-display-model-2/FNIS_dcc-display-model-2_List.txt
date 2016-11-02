@@ -81,6 +81,9 @@ o -k dcc-dm-dollstand-a1 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandA
 o -k dcc-dm-dollstand-a2 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandA2
 o -k dcc-dm-dollstand-b1 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandB1
 o -k dcc-dm-dollstand-b2 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandB2
+o dcc-dm-dollstand-c1 postmount1.hkx dcc_dm_AobjDollStandC1
+o dcc-dm-dollstand-d1 postmount2.hkx dcc_dm_AobjDollStandD1
+
 
 ' wood/rope pony by darkconsole
 

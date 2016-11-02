@@ -63,6 +63,7 @@ type MiscObject
 2) add a texture set to the label of the crate to make it say what it is.
 2) add dcc_dm_ObjectDrop script leave properties blank for now.
 
+don't forget to create a crafting pattern for this MiscObject.
 
 Activator
 --------------------------------
