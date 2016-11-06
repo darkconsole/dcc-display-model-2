@@ -81,8 +81,8 @@ o -k dcc-dm-dollstand-a1 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandA
 o -k dcc-dm-dollstand-a2 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandA2
 o -k dcc-dm-dollstand-b1 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandB1
 o -k dcc-dm-dollstand-b2 ..\ZaZAnimationPack\ZazAPC051.hkx dcc_dm_AobjDollStandB2
-o dcc-dm-dollstand-c1 postmount1.hkx dcc_dm_AobjDollStandC1
-o dcc-dm-dollstand-d1 postmount2.hkx dcc_dm_AobjDollStandD1
+o -AVbHumanoidFootIKDisable dcc-dm-dollstand-c1 dollstand-c1.hkx dcc_dm_AobjDollStandC1
+o -AVbHumanoidFootIKDisable dcc-dm-dollstand-d1 dollstand-d1.hkx dcc_dm_AobjDollStandD1
 
 
 ' wood/rope pony by darkconsole
@@ -91,3 +91,15 @@ o -k dcc-dm-ropepony-a1a ..\ZaZAnimationPack\ZazAPC001.hkx dcc_dm_AobjRopePonyA1
 o -k dcc-dm-ropepony-a1b ..\ZaZAnimationPack\ZazAPC002.hkx dcc_dm_AobjRopePonyA1 dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
 o -k dcc-dm-woodpony-a1a ..\ZaZAnimationPack\ZazAPC001.hkx dcc_dm_AobjWoodPonyA1 dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
 o -k dcc-dm-woodpony-a1b ..\ZaZAnimationPack\ZazAPC002.hkx dcc_dm_AobjWoodPonyA1 dcc_dm_AobjBindingRopeWristL dcc_dm_AobjBindingRopeWristR
+
+' misc by darkconsole
+
+o -AVbHumanoidFootIKDisable dcc-dm-chairbound-a1 chairbound-a1.hkx dcc_dm_AobjChairA1
+
+o -AVbHumanoidFootIKDisable dcc-dm-mann-a1 mannequin-a1.hkx dcc_dm_AobjMannequinA1
+o -AVbHumanoidFootIKDisable dcc-dm-mann-b1 mannequin-b1.hkx dcc_dm_AobjMannequinB1
+o -AVbHumanoidFootIKDisable dcc-dm-mann-b2 mannequin-b2.hkx dcc_dm_AobjMannequinB2
+o -AVbHumanoidFootIKDisable dcc-dm-mann-b3 mannequin-b3.hkx dcc_dm_AobjMannequinB3
+o -AVbHumanoidFootIKDisable dcc-dm-mann-b4 mannequin-b4.hkx dcc_dm_AobjMannequinB4
+
+

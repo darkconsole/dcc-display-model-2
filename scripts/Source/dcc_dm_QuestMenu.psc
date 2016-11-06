@@ -23,6 +23,19 @@ Event OnGameReload()
 	;; do a dependency check every launch.
 	Main.ResetMod_Prepare()
 
+	;; do a self bondage check for the lulz. if the time the game was running
+	;; when the player entered bondage is greater than the current time that
+	;; suggests a game restart, and upon this mechanic is what i wish to base
+	;; this little silly buff on	
+	If(Main.BehaviourPackageGet(Main.Player) != None)
+		Float Time = Utility.GetCurrentRealTime()
+		Float Last = StorageUtil.GetFloatValue(Main.Player,"DM2.Actor.ClientTime")
+
+		If(Last >= Time)
+			Main.PrintDebug("GIVE BUFF MKAY")
+		EndIf
+	EndIf
+
 	Return
 EndEvent
 

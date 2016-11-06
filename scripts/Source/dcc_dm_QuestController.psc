@@ -1176,6 +1176,10 @@ Function BehaviourApply(Actor Who, Package Pkg, Bool Restrain=FALSE)
 		self.BehaviourRestrainSet(Who,TRUE)
 	EndIf
 
+	If(Who == self.Player)
+		StorageUtil.SetFloatValue(Who,"DM2.Actor.ClientTime",Utility.GetCurrentRealTime())
+	EndIf
+
 	Return
 EndFunction
 
@@ -1223,6 +1227,7 @@ is true.}
 
 	If(Who == self.Player)
 		Game.SetPlayerAIDriven(FALSE)
+		StorageUtil.UnsetFloatValue(Who,"DM2.Actor.ClientTime")
 	Else
 		self.PersistHackClear(Who)
 		self.ActorOutfitResume(Who)
