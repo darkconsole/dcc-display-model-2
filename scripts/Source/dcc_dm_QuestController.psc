@@ -19,6 +19,7 @@ Actor Property Player Auto
 Static Property StaticX Auto ;; NA NA NA NA WIS-CONSIN DETH TRIP
 SexLabFramework Property SexLab Auto Hidden;
 slaFrameworkScr Property Aroused Auto Hidden
+GlobalVariable Property Timescale Auto;
 
 dcc_dm_QuestArousal Property ArousalSystem Auto
 
@@ -39,6 +40,8 @@ FormList Property dcc_dm_ListPoseSpitRoast Auto
 FormList Property dcc_dm_ListPoseSubmit Auto
 FormList Property dcc_dm_ListPoseDollStand Auto
 FormList Property dcc_dm_ListPoseRopePony Auto
+FormList Property dcc_dm_ListPoseMannequin Auto
+Formlist Property dcc_dm_ListPoseCustomMisc Auto
 
 ImageSpaceModifier Property dcc_dm_ImodControlMode Auto
 ImageSpaceModifier Property dcc_dm_ImodControlModeLongPress Auto
@@ -102,6 +105,15 @@ Bool Property OptArousedTickBlush = TRUE Auto Hidden
 
 Bool Property OptArousedNPC = TRUE Auto Hidden
 {if we should work against npcs as well}
+
+Int Property OptForceBondageTime = 0 Auto Hidden
+{if we should force a time in bondage. in seconds.}
+
+Int Property OptEscapeBondageChance = 0 Auto Hidden
+{chance we can escape self bondage before timer expires.}
+
+Int Property OptEscapeBondageStamina = 50 Auto Hidden
+{how much stamina is required to escape bondage.}
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Strings ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -283,6 +295,22 @@ Function ResetMod_Values()
 
 	self.OptDebug = TRUE
 	self.OptLongPressTime = 0.3
+    self.OptDebug = TRUE
+    self.OptLongPressTime = 0.3
+    self.OptResumePoseAfterMove = TRUE
+    self.OptTutorials = TRUE
+    self.OptValidateActor = TRUE
+    self.OptUseZazSlavery = FALSE
+    self.OptPoseCancelNIOHH = TRUE
+    self.OptArousedTickFactor = 2.0
+    self.OptArousedTickExposure = TRUE
+    self.OptArousedTickTimeRate = TRUE
+    self.OptArousedTickSound = TRUE
+    self.OptArousedTickExpression = TRUE
+    self.OptArousedTickBlush = TRUE
+    self.OptArousedNPC = TRUE
+	self.OptForceBondageTime = 0
+	self.OptEscapeBondageChance = 0
 
 	Return
 EndFunction
@@ -442,6 +470,31 @@ by the terrain angle or something.}
 	What.SetAngle(0,With.GetAngleY(),With.GetAngleZ())
 
 	Return
+EndFunction
+
+Float Function MathRound(Float N, Int P=1)
+{round a number N to the P points.}
+
+	Return ((((10 * P) * N) - 0.5) as Int) / (10 * P)
+EndFunction
+
+String Function ReadableTimeDelta(Float Time, Bool RealLife=FALSE)
+{given a skyrim time (float of days) return a readble time frame. if asking for
+"real life time" we will use the current timescale to calculate it. }
+
+	String Output = ""
+
+	If(RealLife)
+		Time /= self.Timescale.GetValue()
+	EndIf
+
+	If(Time < 1.0)
+		Output = (Time * 24) + " HOUR(S)"
+	Else
+		Output = (Math.Floor(Time)) + " DAY(S), " + (((Time - Math.Floor(Time)) * 24)) + " HOUR(S)"
+	EndIf
+
+	Return Output	
 EndFunction
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -879,6 +932,9 @@ Function ControlModePoseNext(Int Inc=1)
 	self.PrintDebug("Applying pose " + (Current + 1) + " of " + Items.GetSize())
 	self.BehaviourApply(Who,(Items.GetAt(Current) as Package),self.BehaviourRestrainGet(Who))
 
+	self.ActorBondageTimeUpdate(Who)
+	self.ActorBondageTimeStart(Who)
+
 	;;;;;;;;
 
 	self.ControlPackageIterSet(Current)
@@ -972,6 +1028,26 @@ Event OnInit()
 	Return
 EndEvent
 
+Event OnMenuOpen(String Name)
+{handler for our menu hack}
+
+	If(Name == "Sleep/Wait Menu")
+		self.OnWaitMenu(TRUE)
+	EndIf
+
+	Return
+EndEvent
+
+Event OnMenuClose(String Name)
+{handler for our menu hack}
+
+	If(Name == "Sleep/Wait Menu")
+		self.OnWaitMenu(FALSE)
+	EndIf
+
+	Return
+EndEvent
+
 Function OnWaitMenu(Bool Opened)
 {when we sleep or wait, we want to try and disable any npc running the do
 nothing package to prevent them from moving while we wait. it seems package
@@ -994,6 +1070,15 @@ a step or two away before kicking in again.}
 			EndIf
 		EndIf
 	EndWhile
+
+	;; waiting is cheating motherfucker. you aint getting free stats
+	;; for dat shit. npcs will continue to acrue however.
+
+	If(Opened)
+		self.ActorBondageTimeUpdate(self.Player)
+	Else
+		self.ActorBondageTimeStart(self.Player)
+	EndIf
 
 	Return
 EndFunction
@@ -1176,10 +1261,6 @@ Function BehaviourApply(Actor Who, Package Pkg, Bool Restrain=FALSE)
 		self.BehaviourRestrainSet(Who,TRUE)
 	EndIf
 
-	If(Who == self.Player)
-		StorageUtil.SetFloatValue(Who,"DM2.Actor.ClientTime",Utility.GetCurrentRealTime())
-	EndIf
-
 	Return
 EndFunction
 
@@ -1227,7 +1308,6 @@ is true.}
 
 	If(Who == self.Player)
 		Game.SetPlayerAIDriven(FALSE)
-		StorageUtil.UnsetFloatValue(Who,"DM2.Actor.ClientTime")
 	Else
 		self.PersistHackClear(Who)
 		self.ActorOutfitResume(Who)
@@ -1423,6 +1503,49 @@ Bool Function ActorSexuallyValid(Actor Who)
 	Return TRUE
 EndFunction
 
+Function ActorBondageTimeStart(Actor Who)
+{updates the tracking time that this actor enters bondage}
+
+	If(Who == self.Player)
+		StorageUtil.SetFloatValue(Who,"DM2.Actor.BondageClientStart",Utility.GetCurrentRealTime())
+	EndIf
+
+	StorageUtil.SetFloatValue(Who,"DM2.Actor.BondageTimeStart",Utility.GetCurrentGameTime())
+	Return
+EndFunction
+
+Function ActorBondageTimeUpdate(Actor Who)
+{update the tracking stat for total time spent based on the time start.}
+
+	Float TimeStart = StorageUtil.GetFloatValue(Who,"DM2.Actor.BondageTimeStart",0.0)
+	Float TimeNow = Utility.GetCurrentGameTime()
+
+	If(TimeStart > 0.0 && TimeNow > TimeStart)
+		StorageUtil.AdjustFloatValue(Who,"DM2.Actor.Stat.BoundTime",(TimeNow - TimeStart))
+	EndIf
+
+	If(Who == self.Player)
+		StorageUtil.SetFloatValue(Who,"DM2.Actor.BondageClientStart",0.0)
+	EndIf
+
+	StorageUtil.SetFloatValue(Who,"DM2.Actor.BondageTimeStart",0.0)
+
+	Return
+EndFunction
+
+Float Function ActorBondageTimeTotal(Actor Who)
+{return the time spent in bondage stat}
+
+	return StorageUtil.GetFloatValue(Who,"DM2.Actor.Stat.BoundTime",0.0)
+EndFunction
+
+Function ActorBondageTimeReset(Actor Who)
+{reset the bondage stat to 0}
+	
+	StorageUtil.SetFloatValue(Who,"DM2.Actor.Stat.BoundTime",0.0)
+	Return
+EndFunction
+
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 
@@ -1610,7 +1733,7 @@ Function ActorArousalUpdate(Actor Who)
 		;; exposure goes up if exhibitionist, down otherwise. that was decided
 		;; by the tick value get function.
 		;;self.PrintDebug(Who.GetDisplayName() + " Arousal Exposure Mod " + Tick)
-		Aroused.UpdateActorExposure(Who,(Tick as Int)," Arousal Mod By DM2")
+		Aroused.UpdateActorExposure(Who,(Tick as Int),"Arousal Mod By DM2")
 	EndIf
 
 	If(Aroused && self.OptArousedTickTimeRate)
@@ -1740,6 +1863,7 @@ Function SelfBondageDisable()
 
 	self.ControlModeSet(self.KeyModeNone)
 	self.BehaviourClear(self.Player,TRUE)
+	self.ActorBondageTimeUpdate(self.Player)
 
 	Return
 EndFunction
@@ -1761,36 +1885,54 @@ Function MenuPoseListSelector(Actor Who)
 	UIListMenu Menu = UIExtensions.GetMenu("UIListMenu",TRUE) as UIListMenu
 	String Result
 
-	String[] Name = new String[13]
-	FormList[] Pkg = new FormList[13]
-	String[] Label = new String[13]
+	String[] Name = new String[15]
+	FormList[] Pkg = new FormList[15]
+	String[] Label = new String[15]
 
 	Name[0] = "DM2 - Doll Stand"
-	Pkg[0] = self.dcc_dm_ListPoseDollStand
-	Name[1] = "DM2 - Wooden Pony"
-	Pkg[1] = self.dcc_dm_ListPoseRopePony
-	Name[2] = "ZAP - Caged"
-	Pkg[2] = self.dcc_dm_ListPoseCage
-	Name[3]  = "ZAP - Chained"
-	Pkg[3] = self.dcc_dm_ListPoseChain
-	Name[4]  = "ZAP - Cross"
-	Pkg[4] = self.dcc_dm_ListPoseCross
-	Name[5]  = "ZAP - Crux"
-	Pkg[5] = self.dcc_dm_ListPoseCrux
-	Name[6]  = "ZAP - Misc Dungeon"
-	Pkg[6] = self.dcc_dm_ListPoseMisc
-	Name[7]  = "ZAP - Pillory"
-	Pkg[7] = self.dcc_dm_ListPosePillory
-	Name[8]  = "ZAP - Post"
-	Pkg[8] = self.dcc_dm_ListPosePost
-	Name[9]  = "ZAP - Restrained Post/Wall"
-	Pkg[9] = self.dcc_dm_ListPoseRestrainedTo
-	Name[10]  = "ZAP - Rope Bondage"
-	Pkg[10] = self.dcc_dm_ListPoseRopeBondage
-	Name[11]  = "ZAP - Spit Roasted"
-	Pkg[11] = self.dcc_dm_ListPoseSpitRoast
-	Name[12] = "ZAP - Submission"
-	Pkg[12] = self.dcc_dm_ListPoseSubmit
+	 Pkg[0] = self.dcc_dm_ListPoseDollStand
+
+	Name[1] = "DM2 - Mannequin Men"
+	 Pkg[1] = self.dcc_dm_ListPoseMannequin
+
+	Name[2] = "DM2 - Misc Dungeon"
+	 Pkg[2] = self.dcc_dm_ListPoseCustomMisc
+
+	Name[3] = "DM2 - Wooden Pony"
+	 Pkg[3] = self.dcc_dm_ListPoseRopePony
+
+	Name[4] = "ZAP - Caged"
+	 Pkg[4] = self.dcc_dm_ListPoseCage
+
+	Name[5]  = "ZAP - Chained"
+	 Pkg[5] = self.dcc_dm_ListPoseChain
+
+	Name[6]  = "ZAP - Cross"
+	 Pkg[6] = self.dcc_dm_ListPoseCross
+
+	Name[7]  = "ZAP - Crux"
+	 Pkg[7] = self.dcc_dm_ListPoseCrux
+
+	Name[8]  = "ZAP - Misc Dungeon"
+	 Pkg[8] = self.dcc_dm_ListPoseMisc
+
+	Name[9]  = "ZAP - Pillory"
+	 Pkg[9] = self.dcc_dm_ListPosePillory
+
+	Name[10]  = "ZAP - Post"
+	 Pkg[10] = self.dcc_dm_ListPosePost
+
+	Name[11]  = "ZAP - Restrained Post/Wall"
+	 Pkg[11] = self.dcc_dm_ListPoseRestrainedTo
+
+	Name[12]  = "ZAP - Rope Bondage"
+	 Pkg[12] = self.dcc_dm_ListPoseRopeBondage
+
+	Name[13]  = "ZAP - Spit Roasted"
+	 Pkg[13] = self.dcc_dm_ListPoseSpitRoast
+
+	Name[14] = "ZAP - Submission"
+	 Pkg[14] = self.dcc_dm_ListPoseSubmit
 
 	Menu.AddEntryItem("[[ Cancel ]]")
 
