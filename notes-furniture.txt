@@ -1,0 +1,80 @@
+NOTES TO SELF
+(or anyone attempting to create new furniture)
+----------------------------------------------------------------
+
+use the doll stands as a template when creating new device replace the file
+names here with what you are working on.
+
+you need two versions of the device nif. activators will not load skinned versions
+properly on cold boot.
+
+
+doll-stand-a1
+--------------------------------
+
+equipable animated object version.
+
+- skin static parts to node fx node 61
+- export from max with skyrim default settings. should work in game as is.
+
+
+doll-stand-a1-static
+--------------------------------
+
+1. export from max with skyrim settings: check collision box, uncheck skin modifiers
+2. create a primative version that represents collision. this version requires
+   no skinning or dismemberment mods. you just want the shapes as a basic nif.
+   you can literally just use low poly primative shapes to rough estimate solid parts
+   of the final model.
+3. use chunkmerge with your final file as the nif-file, your simple nif as the
+   collision file, and static.nif (barrel01.nif from vanilla skyrim) to add
+   proper collsion data to the file.
+4. edit collsion shape material type in nifskope if desired to be relevant.
+5. convert NiNode to BSFadeNode in nifskope
+6. only check Has Collision in the BSX field.
+
+
+
+
+GAME FORMS
+----------------------------------------------------------------
+
+Animation Event and Idle Package.
+--------------------------------
+
+use the dm tesvedit script to create these. this should already have been done
+really when making just the normal pose for the pose menu.
+
+
+Animated Equip Object
+--------------------------------
+
+copy a working one and name it to match whatever you put in fnis. use the not
+static nif. also should have been done already.
+
+
+MiscObject
+--------------------------------
+
+create an object to have in your inventory that is drop and placable of
+type MiscObject
+
+1) use crate as the nif for the MiscObject
+2) add a texture set to the label of the crate to make it say what it is.
+2) add dcc_dm_ObjectDrop script leave properties blank for now.
+
+don't forget to create a crafting pattern for this MiscObject.
+
+Activator
+--------------------------------
+
+create an object for placable furniture of type Activator.
+
+1) use the static nif as the model.
+2) add dcc_dm_ObjectUse script set IdlePackage to the idle package. set
+   PickupItem to the MiscObject.
+3) collision geometry, show on local map only
+4) revisit the MiscObject form script, add the activator as the PlaceItem and
+   set Myself to the MiscObject (it needs a self reference, see script
+   comments if you need to know)
+5) add the new activator to the dcc_dm_ListDeviceActivators formlist.

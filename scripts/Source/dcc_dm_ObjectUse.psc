@@ -113,6 +113,11 @@ release them from it.}
 
 				If(EscapeRoll >= DM.OptEscapeBondageChance)
 					DM.Print("Your escape attempt fails. It has only been " + (TimeDiff / 60.0) + " minutes.")
+
+					If(DM.OptEscapeBondageFailArouse)
+						DM.ActorArousalUpdate(DM.Player, FALSE)
+					EndIf
+
 					Return
 				EndIf
 			EndIf

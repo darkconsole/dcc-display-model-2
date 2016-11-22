@@ -3,7 +3,7 @@ Scriptname dcc_dm_QuestController extends Quest
 Int Function Version() Global
 {current version number}
 
-	Return 203
+	Return 205
 EndFunction
 
 dcc_dm_QuestController Function Get() Global
@@ -27,6 +27,8 @@ Package Property dcc_dm_PackageDoNothing Auto
 Package Property dcc_dm_PackageDoNothingMovable Auto
 Package Property dcc_dm_PackageFollow Auto
 
+;; lists used by the menu system to categorise the poses.
+;; they contain the idle packages.
 FormList Property dcc_dm_ListPoseCage Auto
 FormList Property dcc_dm_ListPoseChain Auto
 FormList Property dcc_dm_ListPoseCross Auto
@@ -42,6 +44,9 @@ FormList Property dcc_dm_ListPoseDollStand Auto
 FormList Property dcc_dm_ListPoseRopePony Auto
 FormList Property dcc_dm_ListPoseMannequin Auto
 Formlist Property dcc_dm_ListPoseCustomMisc Auto
+
+;; list of all the usable furniture activators
+Formlist Property dcc_dm_ListDeviceActivators Auto
 
 ImageSpaceModifier Property dcc_dm_ImodControlMode Auto
 ImageSpaceModifier Property dcc_dm_ImodControlModeLongPress Auto
@@ -85,7 +90,7 @@ Bool Property OptUseZazSlavery = FALSE Auto Hidden
 Bool Property OptPoseCancelNIOHH = TRUE Auto Hidden
 {if we should cancel NIOHH out while posed so they align.}
 
-Float Property OptArousedTickFactor = 2.0 Auto Hidden
+Float Property OptArousedTickFactor = 4.0 Auto Hidden
 {a multiplier for modding arousal level.}
 
 Bool Property OptArousedTickExposure = TRUE Auto Hidden
@@ -112,8 +117,14 @@ Int Property OptForceBondageTime = 0 Auto Hidden
 Int Property OptEscapeBondageChance = 0 Auto Hidden
 {chance we can escape self bondage before timer expires.}
 
-Int Property OptEscapeBondageStamina = 50 Auto Hidden
+Int Property OptEscapeBondageStamina = 75 Auto Hidden
 {how much stamina is required to escape bondage.}
+
+Bool Property OptEscapeBondageFailArouse = TRUE Auto Hidden
+{if failed attempts to escape are detrimental}
+
+Int Property OptStripBondage = 2 Auto Hidden
+{0 = don't strip. 1 = use sexlab settings. 2 = strip all.}
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Strings ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -302,7 +313,7 @@ Function ResetMod_Values()
     self.OptValidateActor = TRUE
     self.OptUseZazSlavery = FALSE
     self.OptPoseCancelNIOHH = TRUE
-    self.OptArousedTickFactor = 2.0
+    self.OptArousedTickFactor = 4.0
     self.OptArousedTickExposure = TRUE
     self.OptArousedTickTimeRate = TRUE
     self.OptArousedTickSound = TRUE
@@ -311,6 +322,9 @@ Function ResetMod_Values()
     self.OptArousedNPC = TRUE
 	self.OptForceBondageTime = 0
 	self.OptEscapeBondageChance = 0
+	self.OptEscapeBondageStamina = 75
+	self.OptEscapeBondageFailArouse = TRUE
+	self.OptStripBondage = 2
 
 	Return
 EndFunction
@@ -1074,10 +1088,12 @@ a step or two away before kicking in again.}
 	;; waiting is cheating motherfucker. you aint getting free stats
 	;; for dat shit. npcs will continue to acrue however.
 
-	If(Opened)
-		self.ActorBondageTimeUpdate(self.Player)
-	Else
-		self.ActorBondageTimeStart(self.Player)
+	If(self.BehaviourPackageGet(self.Player) != None)
+		If(Opened)
+			self.ActorBondageTimeUpdate(self.Player)
+		Else
+			self.ActorBondageTimeStart(self.Player)
+		EndIf
 	EndIf
 
 	Return
@@ -1246,14 +1262,16 @@ Function BehaviourApply(Actor Who, Package Pkg, Bool Restrain=FALSE)
 
 	;; apply the new super package
 
-	self.BehaviourRestrainSet(Who,FALSE)
 	self.PoseTransformClear(Who)
-	ActorUtil.AddPackageOverride(Who,Pkg,100)
-	Who.EvaluatePackage()
-
+	self.BehaviourRestrainSet(Who,FALSE)
+	
 	If(Pkg != self.dcc_dm_PackageFollow && Pkg != self.dcc_dm_PackageDoNothing && Pkg != self.dcc_dm_PackageDoNothingMovable)
+		self.ActorStrip(Who)
 		self.PoseTransformApply(Who,self.PoseTransformFind(Pkg))
 	EndIf
+
+	ActorUtil.AddPackageOverride(Who,Pkg,100)
+	Who.EvaluatePackage()
 
 	self.BehaviourPackageSet(Who,Pkg)
 
@@ -1284,6 +1302,7 @@ is true.}
 	Who.SetVehicle(None)
 	self.BehaviourRestrainSet(Who,FALSE)
 	self.ActorArousalUnregister(Who)
+	self.ActorUnstrip(Who)
 
 	If(!Full)
 		Utility.Wait(0.1)
@@ -1507,6 +1526,7 @@ Function ActorBondageTimeStart(Actor Who)
 {updates the tracking time that this actor enters bondage}
 
 	If(Who == self.Player)
+		;; start tracking the client time for self bondage enforcement.
 		StorageUtil.SetFloatValue(Who,"DM2.Actor.BondageClientStart",Utility.GetCurrentRealTime())
 	EndIf
 
@@ -1522,9 +1542,11 @@ Function ActorBondageTimeUpdate(Actor Who)
 
 	If(TimeStart > 0.0 && TimeNow > TimeStart)
 		StorageUtil.AdjustFloatValue(Who,"DM2.Actor.Stat.BoundTime",(TimeNow - TimeStart))
+		StorageUtil.AdjustFloatValue(None,"DM2.Stat.BoundTime",(TimeNow - TimeStart))
 	EndIf
 
 	If(Who == self.Player)
+		;; clear the client time for self bondage enforcement.
 		StorageUtil.SetFloatValue(Who,"DM2.Actor.BondageClientStart",0.0)
 	EndIf
 
@@ -1542,10 +1564,66 @@ EndFunction
 Function ActorBondageTimeReset(Actor Who)
 {reset the bondage stat to 0}
 	
+	StorageUtil.SetFloatValue(Who,"DM2.Actor.BondageTimeStart",0.0)
 	StorageUtil.SetFloatValue(Who,"DM2.Actor.Stat.BoundTime",0.0)
+	StorageUtil.SetFloatValue(None,"DM2.Stat.BoundTime",0.0)
 	Return
 EndFunction
 
+Function ActorStrip(Actor Who)
+{unequip this actor.}
+
+	If(self.OptStripBondage == 0)
+		;; don't strip if disabled.
+		Return
+	EndIf
+
+	If(StorageUtil.FormListCount(Who,"DM2.Actor.Armour") > 0)
+		;; don't strip if we already have.
+		Return
+	EndIf
+
+	Bool[] Slots = new Bool[33]
+	Form[] Items
+	Int Iter = 0
+
+	If(self.OptStripBondage == 1)
+		;; strip via sexlab config.
+		Items = SexLab.StripActor(Who,None,FALSE,FALSE)
+	ElseIf(self.OptStripBondage == 2)
+		;; strip all the things.
+		Iter = 0
+		While(Iter < Slots.Length)
+			Slots[Iter] = TRUE
+			Iter += 1
+		EndWhile
+		Items = SexLab.ActorLib.StripSlots(Who,Slots,FALSE,FALSE)
+	EndIf
+
+	;; store the data.
+
+	Iter = 0
+	While(Iter < Items.Length)
+		StorageUtil.FormListAdd(Who,"DM2.Actor.Armour",Items[Iter],TRUE)
+		Iter += 1
+	EndWhile
+
+	Return
+EndFunction
+
+Function ActorUnstrip(Actor Who)
+{re-equip this actor.}
+
+	If(StorageUtil.FormListCount(Who,"DM2.Actor.Armour") == 0)
+		;; don't unstrip if we have nothing.
+		Return
+	EndIf
+
+	SexLab.UnstripActor(Who,StorageUtil.FormListToArray(Who,"DM2.Actor.Armour"),FALSE)
+	StorageUtil.FormListClear(Who,"DM2.Actor.Armour")
+
+	Return
+EndFunction
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 
@@ -1603,6 +1681,7 @@ contains the animated equip version.}
 		self.PrintDebug("Disabling " + What.GetDisplayName())
 		Who.AddToFaction(self.dcc_dm_FactionUsingObject)
 		What.Disable(FALSE)
+		self.AlignObject(Who,What)
 		self.AlignObject(Who,What)
 	EndIf
 	
@@ -1724,10 +1803,14 @@ Float Function ActorArousalGetTick(Actor Who)
 	Return Tick
 EndFunction
 
-Function ActorArousalUpdate(Actor Who)
+Function ActorArousalUpdate(Actor Who, Bool Lower=TRUE)
 {update an actors arousal.}
 
 	Float Tick = self.ActorArousalGetTick(Who)
+
+	If(!Lower)
+		Tick *= -1;
+	EndIf
 
 	If(Aroused && self.OptArousedTickExposure)
 		;; exposure goes up if exhibitionist, down otherwise. that was decided

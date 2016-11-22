@@ -41,11 +41,13 @@ EndEvent
 Event OnConfigInit()
 {things to do when the menu initalises (is opening)}
 
-	self.Pages = new String[3]
+	self.Pages = new String[5]
 
 	self.Pages[0] = "General"
-	self.Pages[1] = "Debug & Repair"
-	self.Pages[2] = "Splash"
+	self.Pages[1] = "Self Bondage"
+	self.Pages[2] = "Statistics"
+	self.Pages[3] = "Debug & Repair"
+	self.Pages[4] = "Splash"
 
 	Return
 EndEvent
@@ -75,6 +77,10 @@ Event OnPageReset(String Page)
 		self.ShowPageGeneral()
 	ElseIf(Page == "Debug & Repair")
 		self.ShowPageDebug()
+	ElseIf(Page == "Self Bondage")
+		self.ShowPageSelfBondage()
+	ElseIf(Page == "Statistics")
+		self.ShowPageStats()
 	Else
 		self.ShowPageIntro()
 	EndIf
@@ -125,6 +131,11 @@ Event OnOptionSelect(Int Item)
 		Val = !Main.OptArousedTickTimeRate
 		Main.OptArousedTickTimeRate = Val
 
+	;; ShowPageSelfBondage()
+	ElseIf(Item == ItemEscapeBondageFailArouse)
+		Val = !Main.OptEscapeBondageFailArouse
+		Main.OptEscapeBondageFailArouse = Val
+
 	;; ShowPageDebug()
 	ElseIf(Item == ItemDebug)
 		Val = !Main.OptDebug
@@ -158,6 +169,16 @@ Event OnOptionSliderOpen(Int Item)
 		Min = 0.0
 		Max = 100.0
 		Interval = 1.0
+	ElseIf(Item == ItemEscapeBondageStamina)
+		Val = Main.OptEscapeBondageStamina
+		Min = 0.0
+		Max = 500.0
+		Interval = 10.0
+	ElseIf(Item == ItemStripBondage)
+		Val = Main.OptStripBondage
+		Min = 0.0
+		Max = 2.0
+		Interval = 1.0
 	EndIf
 
 	SetSliderDialogStartValue(Val)
@@ -178,6 +199,12 @@ Event OnOptionSliderAccept(Int Item, Float Val)
 	ElseIf(Item == ItemEscapeBondageChance)
 		Main.OptEscapeBondageChance = Val as Int
 		Fmt = "{0}%"
+	ElseIf(Item == ItemEscapeBondageStamina)
+		Main.OptEscapeBondageStamina = Val as Int
+		Fmt = "{0}"
+	ElseIf(Item == ItemStripBondage)
+		Main.OptStripBondage = Val as Int
+		Fmt = "{0}"
 	EndIf
 
 	SetSliderOptionValue(Item,Val,Fmt)
@@ -215,14 +242,28 @@ Event OnOptionHighlight(Int Item)
 		self.SetInfoText("If this is FALSE then go to the SexLab MCM and turn it on.")
 	ElseIf(Item == ItemHasPapyrusUtil)
 		self.SetInfoText("If this is FALSE then something like SoS overwrote SexLab or PapyrusUtil. Fix your load order or reinstall SoS with PapyrusUtil disabled.")
-	ElseIf(Item == ItemStatBondageTimePlayerGame)
-		self.SetInfoText("How long the player has spent in self bondage in Skyrim Time.")
-	ElseIf(Item == ItemStatBondageTimePlayerReal)
-		self.SetInfoText("How long the player has spent bound in real life time. This is only an estimate. If you change your timescale mid-game or use a dynamic timescale mod, this number will not be accurate. The above game time however is.")
+	ElseIf(Item == ItemStripBondage)
+		self.SetInfoText("Strip items when bound? 0 = No. 1 = Yes, per the SexLab config. 2 = Yes, all the things.")
+
+	;; ShowPageSelfBondage()
 	ElseIf(Item == ItemForceBondageTime)
 		self.SetInfoText("Disallow the player to escape self-bondage until this amount of your real life time has passed. Set to 0 to disable.")
 	ElseIf(Item == ItemEscapeBondageChance)
 		self.SetInfoText("Chance that the player can escape self-bondage before the timer expires.")
+	ElseIf(Item == ItemEscapeBondageStamina)
+		self.SetInfoText("How much stamina is required to attempt to break out of self bondage.")
+	ElseIf(Item == ItemEscapeBondageFailArouse)
+		self.SetInfoText("Failed attempts to escape self bondage will bump arousal up a bit (and moan, and blush).")
+	ElseIf(Item == ItemStatActorsCharmed)
+		self.SetInfoText("How many actors have been charmed with the amulet of control.")
+	ElseIf(Item == ItemStatActorsBound)
+		self.SetInfoText("How many actors are currently in bondage.")
+	ElseIf(Item == ItemStatBondageTimePlayerGame)
+		self.SetInfoText("How long the player has spent in self bondage in Skyrim Time.")
+	ElseIf(Item == ItemStatBondageTimePlayerReal)
+		self.SetInfoText("How long the player has spent bound in real life time. This is only an estimate. If you change your timescale mid-game or use a dynamic timescale mod, this number will not be accurate. The above game time however is.")
+	ElseIf(item == ItemStatBondageTime)
+		self.SetInfoText("Cumulative time spent in bondage across all actors.")
 
 	;; ShowPageDebug()
 	ElseIf(Item == ItemReset)
@@ -264,11 +305,7 @@ Int ItemArousedTickTimeRate
 Int ItemArousedTickSound
 Int ItemArousedTickExpression
 Int ItemArousedTickBlush
-Int ItemForceBondageTime
-Int ItemEscapeBondageChance
-
-Int ItemStatBondageTimePlayerGame
-Int ItemStatBondageTimePlayerReal
+Int ItemStripBondage
 
 Function ShowPageGeneral()
 {main options and status page}
@@ -289,14 +326,7 @@ Function ShowPageGeneral()
 	ItemArousedTickSound = self.AddToggleOption("Arousal Mod Moans",Main.OptArousedTickSound)
 	ItemArousedTickExpression = self.AddToggleOption("Arousal Mod Expression",Main.OptArousedTickExpression)
 	ItemArousedTickBlush = self.AddToggleOption("Arousal Mod Blush",Main.OptArousedTickBlush)
-
-	If(Main.BehaviourPackageGet(Main.Player) != None)
-		ItemForceBondageTime = self.AddSliderOption("Force Bondage Time",(Main.OptForceBondageTime / 60.0),"{2} Min",OPTION_FLAG_DISABLED)
-		ItemEscapeBondageChance = self.AddSliderOption("Escape Bondage Chance",Main.OptEscapeBondageChance,"{0}",OPTION_FLAG_DISABLED)
-	Else
-		ItemForceBondageTime = self.AddSliderOption("Force Bondage Time",(Main.OptForceBondageTime / 60.0),"{2} Min")
-		ItemEscapeBondageChance = self.AddSliderOption("Escape Bondage Chance",Main.OptEscapeBondageChance,"{0}%")
-	EndIf
+	ItemStripBondage = self.AddSliderOption("Strip Items",Main.OptStripBondage,"{0}")
 
 
 	self.SetCursorPosition(1)
@@ -308,12 +338,110 @@ Function ShowPageGeneral()
 	ItemHasSexLabActive = self.AddToggleOption("SexLab Running",Main.IsInstalledSexLabReally(FALSE),OPTION_FLAG_DISABLED)
 	ItemHasPapyrusUtil = self.AddToggleOption("Papyrus Util > 3.1",Main.IsInstalledPapyrusUtil(FALSE),OPTION_FLAG_DISABLED)
 
+
 	self.AddHeaderOption("Optional Support")
 	ItemhasAroused = self.AddToggleOption("SexLab Aroused",Main.IsInstalledAroused(FALSE),OPTION_FLAG_DISABLED)
 
-	self.AddHeaderOption("Stats")
-	ItemStatBondageTimePlayerGame = self.AddTextOption("Game Time Bound",Main.ReadableTimeDelta(Main.ActorBondageTimeTotal(Main.Player)),OPTION_FLAG_DISABLED)
-	ItemStatBondageTimePlayerReal = self.AddTextOption("Real Time Bound",Main.ReadableTimeDelta(Main.ActorBondageTimeTotal(Main.Player),TRUE),OPTION_FLAG_DISABLED)
+	Return
+EndFunction
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Int ItemForceBondageTime
+Int ItemEscapeBondageChance
+Int ItemEscapeBondageStamina
+Int ItemEscapeBondageFailArouse
+
+Int ItemStatActorsCharmed
+Int ItemStatActorsBound
+Int ItemStatBondageTimePlayerGame
+Int ItemStatBondageTimePlayerReal
+Int ItemStatBondageTime
+
+Function ShowPageSelfBondage()
+{options for the self bondage realted stuff}
+
+	Int PlayerFlags = 0
+
+	;;;;;;;;
+
+	If(Main.BehaviourPackageGet(Main.Player) != None)
+		PlayerFlags = OPTION_FLAG_DISABLED
+	EndIf
+
+	;;;;;;;;
+
+	self.SetTitleText("Self Bondage")
+	self.SetCursorFillMode(TOP_TO_BOTTOM)
+
+	;; left column.
+	self.SetCursorPosition(0)
+	self.AddHeaderOption("Enforcement")
+	ItemForceBondageTime = self.AddSliderOption("Force Bondage Time",(Main.OptForceBondageTime / 60.0),"{2} Min",PlayerFlags)
+	ItemEscapeBondageChance = self.AddSliderOption("Escape Bondage Chance",Main.OptEscapeBondageChance,"{0}",PlayerFlags)
+	ItemEscapeBondageStamina = self.AddSliderOption("Escape Stamina Req",Main.OptEscapeBondageStamina,"{0}",PlayerFlags)
+	ItemEscapeBondageFailArouse = self.AddToggleOption("Failed Escapes Arouse",Main.OptEscapeBondageFailArouse,PlayerFlags)
+
+	Return
+EndFunction
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Function ShowPageStats()
+{stats page}
+
+	Actor ActorCurrent = None
+	Int ActorsCharmed = 0
+	Int ActorsBound = 0
+	Int Iter = 0
+
+	;;;;;;;;
+
+	ActorsCharmed = StorageUtil.FormListCount(None,Main.KeyListPersist)
+
+	Main.FormListLock(None,Main.KeyListPersist,"MCM.SelfBondageStatCounter")
+
+	Iter = 0
+	While(Iter < ActorsCharmed)
+		ActorCurrent = StorageUtil.FormListGet(None,Main.KeyListPersist,Iter) as Actor
+
+		If(Main.BehaviourPackageGet(ActorCurrent) != None)
+			Main.ActorBondageTimeUpdate(ActorCurrent)
+			Main.ActorBondageTimeStart(ActorCurrent)
+			ActorsBound += 1
+		EndIf
+
+		Iter += 1
+	EndWhile
+
+	Main.FormListUnlock(None,Main.KeyListPersist)
+
+	If(Main.BehaviourPackageGet(Main.Player) != None)
+		Main.ActorBondageTimeUpdate(ActorCurrent)
+		Main.ActorBondageTimeStart(ActorCurrent)
+	EndIf
+
+	;;;;;;;;
+
+	self.SetTitleText("Stats")
+	self.SetCursorFillMode(TOP_TO_BOTTOM)
+
+	;; left column.
+	self.SetCursorPosition(0)
+	self.AddHeaderOption("General Info")
+	ItemStatActorsCharmed = self.AddTextOption("Actors Charmed",ActorsCharmed,OPTION_FLAG_DISABLED)
+	ItemStatActorsBound = self.AddTextOption("Actors Bound",ActorsBound,OPTION_FLAG_DISABLED)
+
+	;; right column.
+	self.SetCursorPosition(1)
+	self.AddHeaderOption("Global Bondage Stats")
+	ItemStatBondageTime = self.AddTextOption("Bound Game Time",Main.ReadableTimeDelta(StorageUtil.GetFloatValue(None,"DM2.Stat.BoundTime")),OPTION_FLAG_DISABLED)
+
+	self.AddHeaderOption("Self Bondage Stats")
+	ItemStatBondageTimePlayerGame = self.AddTextOption("Bound Game Time",Main.ReadableTimeDelta(Main.ActorBondageTimeTotal(Main.Player)),OPTION_FLAG_DISABLED)
+	ItemStatBondageTimePlayerReal = self.AddTextOption("Bound Real Time",Main.ReadableTimeDelta(Main.ActorBondageTimeTotal(Main.Player),TRUE),OPTION_FLAG_DISABLED)
 
 	Return
 EndFunction
@@ -327,18 +455,16 @@ Int ItemResetBondageTimeStat
 
 Function ShowPageDebug()
 	self.SetTitleText("Debugging")
-	self.SetCursorFillMode(LEFT_TO_RIGHT)
+	self.SetCursorFillMode(TOP_TO_BOTTOM)
+
 	self.SetCursorPosition(0)
-
 	self.AddHeaderOption("Repair")
-		self.AddHeaderOption("")
 	ItemReset = self.AddToggleOption("Reset Mod",FALSE)
-		ItemResetBondageTimeStat = self.AddToggleOption("Reset Bondage Time Stat",FALSE)
+	ItemResetBondageTimeStat = self.AddToggleOption("Reset Bondage Time Stat",FALSE)
 
+	self.SetCursorPosition(1)
 	self.AddHeaderOption("Debugging")
-		self.AddHeaderOption("")
 	ItemDebug = self.AddToggleOption("Debugging Messages",Main.OptDebug)
-		self.AddEmptyOption()
 
 	Return
 EndFunction

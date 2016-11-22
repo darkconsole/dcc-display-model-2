@@ -109,5 +109,6 @@ o -AVbHumanoidFootIKDisable dcc-dm-mann-c1 mannequin-c1.hkx dcc_dm_AobjMannequin
 o -AVbHumanoidFootIKDisable dcc-dm-mann-d1 mannequin-d1.hkx dcc_dm_AobjMannequinD1
 o -AVbHumanoidFootIKDisable dcc-dm-mann-e1 mannequin-e1.hkx dcc_dm_AobjMannequinE1
 o -AVbHumanoidFootIKDisable dcc-dm-mann-f1 mannequin-f1.hkx dcc_dm_AobjMannequinF1
+o -AVbHumanoidFootIKDisable dcc-dm-mann-g1 invert-a1.hkx    dcc_dm_AobjMannequinG1
 
 
