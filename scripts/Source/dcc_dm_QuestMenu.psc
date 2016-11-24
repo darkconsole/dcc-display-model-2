@@ -310,9 +310,6 @@ Int ItemStripBondage
 Function ShowPageGeneral()
 {main options and status page}
 
-	Main.ActorBondageTimeUpdate(Main.Player)
-	Main.ActorBondageTimeStart(Main.Player)
-
 	self.SetTitleText("General")
 	self.SetCursorFillMode(TOP_TO_BOTTOM)
 	
@@ -419,8 +416,8 @@ Function ShowPageStats()
 	Main.FormListUnlock(None,Main.KeyListPersist)
 
 	If(Main.BehaviourPackageGet(Main.Player) != None)
-		Main.ActorBondageTimeUpdate(ActorCurrent)
-		Main.ActorBondageTimeStart(ActorCurrent)
+		Main.ActorBondageTimeUpdate(Main.Player)
+		Main.ActorBondageTimeStart(Main.Player)
 	EndIf
 
 	;;;;;;;;

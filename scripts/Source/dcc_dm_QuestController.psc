@@ -497,16 +497,34 @@ String Function ReadableTimeDelta(Float Time, Bool RealLife=FALSE)
 "real life time" we will use the current timescale to calculate it. }
 
 	String Output = ""
+	Float Work = 0.0
 
 	If(RealLife)
 		Time /= self.Timescale.GetValue()
 	EndIf
 
-	If(Time < 1.0)
-		Output = (Time * 24) + " HOUR(S)"
-	Else
-		Output = (Math.Floor(Time)) + " DAY(S), " + (((Time - Math.Floor(Time)) * 24)) + " HOUR(S)"
+	;;;;;;;;
+	;;;;;;;;
+
+	Work = Time
+
+	If(Work > 1.0)
+		Output += Math.Floor(Work) + " D,"
 	EndIf
+	Work = (Work - Math.Floor(Work)) * 24
+
+	If(Work > 0.0)
+		Output += Math.Floor(Work) + " H,"
+	EndIf
+	Work = (Work - Math.Floor(Work)) * 60
+
+	If(Work > 0.0)
+		Output += Math.Floor(Work) + " M"
+	EndIf
+
+	;; hillarious trick dealing with the above string since we have no
+	;; trim function.
+	Output = PapyrusUtil.StringJoin(PapyrusUtil.StringSplit(Output,",")," ")
 
 	Return Output	
 EndFunction
@@ -993,12 +1011,12 @@ Function PoseTransformApply(Actor Who, Float[] Value)
 	Float ActorScale = Who.GetScale()
 	self.PrintDebug(Who.GetDisplayName() + " scale is " + ActorScale)
 
-	;; add the offset for this animation.
-	if(ActorScale < 1.0)
-		self.PrintDebug(Who.GetDisplayName() + " scale to " + Value[2])	
-		Value[2] = Value[2] * (ActorScale * ActorScale * ActorScale)
-	EndIf
+	;;if(ActorScale < 1.0)
+	;;	self.PrintDebug(Who.GetDisplayName() + " scale to " + Value[2])	
+	;;	Value[2] = Value[2] * (ActorScale * ActorScale * ActorScale)
+	;;EndIf
 
+	;; add the offset for this animation.
 	NiOverride.AddNodeTransformPosition(Who,FALSE,IsFemale,"NPC","DM2.PoseTransform", Value)
 
 	;; cancel out nio hh. based on how ash baby is doing it in sexlab, seemed pretty smrt.
@@ -1072,6 +1090,8 @@ a step or two away before kicking in again.}
 	Form[] ActorList = StorageUtil.FormListToArray(None,self.KeyListPersist)
 	Actor Who
 	Int Iter
+
+	self.PrintDebug("Wait Menu Opened/Closed")
 
 	While(Iter > ActorList.Length)
 		Who = ActorList[Iter] as Actor
@@ -1277,6 +1297,11 @@ Function BehaviourApply(Actor Who, Package Pkg, Bool Restrain=FALSE)
 
 	If(Restrain)
 		self.BehaviourRestrainSet(Who,TRUE)
+	EndIf
+
+	ObjectReference Using = self.ActorUsingGet(Who)
+	If(Using)
+		self.AlignObject(Who,Using)
 	EndIf
 
 	Return
@@ -1682,7 +1707,6 @@ contains the animated equip version.}
 		Who.AddToFaction(self.dcc_dm_FactionUsingObject)
 		What.Disable(FALSE)
 		self.AlignObject(Who,What)
-		self.AlignObject(Who,What)
 	EndIf
 	
 	StorageUtil.SetFormValue(Who,self.KeyActorUsing,What)
@@ -1929,6 +1953,8 @@ Function SelfBondageEnable(Bool DoMenu=TRUE)
 	self.UnequipShout(self.Player)
 	self.BehaviourDefault(self.Player)
 	Utility.Wait(0.15)
+	Game.DisablePlayerControls(FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,0)
+	Utility.Wait(0.15)
 
 	If(DoMenu)
 		;; control mode will handle registering for arousal.
@@ -1946,7 +1972,9 @@ Function SelfBondageDisable()
 
 	self.ControlModeSet(self.KeyModeNone)
 	self.BehaviourClear(self.Player,TRUE)
+	Game.EnablePlayerControls()
 	self.ActorBondageTimeUpdate(self.Player)
+
 
 	Return
 EndFunction
