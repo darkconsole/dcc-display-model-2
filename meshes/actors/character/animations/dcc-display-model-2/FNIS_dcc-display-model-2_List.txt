@@ -1,4 +1,4 @@
-Version 101
+Version 102
 
 ''''''''
 ''''''''
@@ -111,4 +111,25 @@ o -AVbHumanoidFootIKDisable dcc-dm-mann-e1 mannequin-e1.hkx dcc_dm_AobjMannequin
 o -AVbHumanoidFootIKDisable dcc-dm-mann-f1 mannequin-f1.hkx dcc_dm_AobjMannequinF1
 o -AVbHumanoidFootIKDisable dcc-dm-mann-g1 invert-a1.hkx    dcc_dm_AobjMannequinG1
 
+' binder unit probably from outer space but who knows by darkconsole
+
+'o -AVbHumanoidFootIKDisable dcc-dm-binder-a1 binder-a1.hkx  dcc_dm_AobjBinderA1 dcc_dm_AobjMagicWristCuffL dcc_dm_AobjMagicWristCuffR dcc_dm_AobjMagicAnkleCuffL dcc_dm_AobjMagicAnkleCuffR dcc_dm_AobjMagicCollar dcc_dm_AobjMagicNippleL dcc_dm_AobjMagicNippleR dcc_dm_AobjMagicNippleL dcc_dm_AobjMagicClit dcc_dm_AobjMagicDildo
+'o -AVbHumanoidFootIKDisable dcc-dm-binder-b1 binder-b1.hkx  dcc_dm_AobjBinderB1 dcc_dm_AobjMagicWristCuffL dcc_dm_AobjMagicWristCuffR dcc_dm_AobjMagicAnkleCuffL dcc_dm_AobjMagicAnkleCuffR dcc_dm_AobjMagicCollar dcc_dm_AobjMagicNippleL dcc_dm_AobjMagicNippleR dcc_dm_AobjMagicNippleL dcc_dm_AobjMagicClit dcc_dm_AobjMagicDildo
+'o -AVbHumanoidFootIKDisable dcc-dm-binder-c1 binder-c1.hkx  dcc_dm_AobjBinderC1 dcc_dm_AobjMagicWristCuffL dcc_dm_AobjMagicWristCuffR dcc_dm_AobjMagicAnkleCuffL dcc_dm_AobjMagicAnkleCuffR dcc_dm_AobjMagicCollar dcc_dm_AobjMagicNippleL dcc_dm_AobjMagicNippleR dcc_dm_AobjMagicNippleL dcc_dm_AobjMagicClit dcc_dm_AobjMagicDildo
+
+''''''''
+''''''''
+
+' attempting a modular animation system.
+
+' pose-a1 = animation a, variant 1
+' variants may include different objects to produce different colours/textures/accessories.
+
+' suspension rigs
+o -AVbHumanoidFootIKDisable dcc-dm-susp-a1 susp-a.hkx dcc_dm_AobjFrameHang1 dcc_dm_AObjFrameHang1Rope1 dcc_dm_AObjSuspARig1
+o -AVbHumanoidFootIKDisable dcc-dm-susp-b1 susp-b.hkx dcc_dm_AobjFrameHang1 dcc_dm_AObjFrameHang1Rope2 dcc_dm_AObjSuspBRig1
+
+' directional rigs
+o -AVbHumanoidFootIKDisable dcc-dm-dir-c1 dir-c.hkx dcc_dm_AobjFrameHang2 dcc_dm_AObjDirCRig1 ' dir c pretty
+o -AVbHumanoidFootIKDisable dcc-dm-dir-d1 dir-d.hkx dcc_dm_AobjFrameHang2 dcc_dm_AObjDirCRig1 ' dir c tired
 

@@ -94,6 +94,8 @@ release them from it.}
 
 		dcc_dm_QuestController DM = dcc_dm_QuestController.Get()
 
+		;/*	
+
 		If(DM.OptForceBondageTime > 0)
 			Float TimeDiff = Utility.GetCurrentRealTime() - StorageUtil.GetFloatValue(DM.Player,"DM2.Actor.BondageClientStart",0.0)
 			Int EscapeRoll = Utility.RandomInt(1,99)
@@ -123,13 +125,14 @@ release them from it.}
 			EndIf
 		EndIf
 
-		DM.Print("You have freed yourself from the restraints.")
+		*/;
 
-		;; quit the controls.
-		self.UnregisterForControl("Jump")
 
-		;; return the player.
-		DM.SelfBondageDisable()
+		If(DM.SelfBondageEscapeAttempt())
+			DM.Print("You have freed yourself from the restraints.")
+			self.UnregisterForControl("Jump")
+			DM.SelfBondageDisable()
+		EndIf
 
 		Return
 EndEvent

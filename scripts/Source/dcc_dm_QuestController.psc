@@ -40,10 +40,12 @@ FormList Property dcc_dm_ListPoseRestrainedTo Auto
 FormList Property dcc_dm_ListPoseRopeBondage Auto
 FormList Property dcc_dm_ListPoseSpitRoast Auto
 FormList Property dcc_dm_ListPoseSubmit Auto
+
 FormList Property dcc_dm_ListPoseDollStand Auto
 FormList Property dcc_dm_ListPoseRopePony Auto
 FormList Property dcc_dm_ListPoseMannequin Auto
 Formlist Property dcc_dm_ListPoseCustomMisc Auto
+Formlist Property dcc_dm_ListPoseBinderBot Auto
 
 ;; list of all the usable furniture activators
 Formlist Property dcc_dm_ListDeviceActivators Auto
@@ -1266,7 +1268,7 @@ EndFunction
 ;; These are the functions which will overwrite and manage the
 ;; overrides to an actors behaviour.
 
-Function BehaviourApply(Actor Who, Package Pkg, Bool Restrain=FALSE)
+Function BehaviourApply(Actor Who, Package Pkg, Bool Restrain=FALSE, Bool Align=TRUE)
 {have an actor begin a specific package.}
 
 	If(!self.ActorSexuallyValid(Who))
@@ -1300,7 +1302,7 @@ Function BehaviourApply(Actor Who, Package Pkg, Bool Restrain=FALSE)
 	EndIf
 
 	ObjectReference Using = self.ActorUsingGet(Who)
-	If(Using)
+	If(Align && Using)
 		self.AlignObject(Who,Using)
 	EndIf
 
@@ -1341,7 +1343,7 @@ is true.}
 	;; reset their furniture
 
 	If(self.ActorUsingGet(Who) != None)
-		self.ActorUsingGet(Who).Enable(TRUE)
+		;; self.ActorUsingGet(Who).Enable(TRUE) alreadyd done by set none
 		self.ActorUsingSet(Who,None)
 	EndIf
 
@@ -1612,6 +1614,8 @@ Function ActorStrip(Actor Who)
 	Form[] Items
 	Int Iter = 0
 
+	self.ActorOutfitStop(Who,FALSE)
+
 	If(self.OptStripBondage == 1)
 		;; strip via sexlab config.
 		Items = SexLab.StripActor(Who,None,FALSE,FALSE)
@@ -1643,6 +1647,8 @@ Function ActorUnstrip(Actor Who)
 		;; don't unstrip if we have nothing.
 		Return
 	EndIf
+
+	self.ActorOutfitResume(Who)
 
 	SexLab.UnstripActor(Who,StorageUtil.FormListToArray(Who,"DM2.Actor.Armour"),FALSE)
 	StorageUtil.FormListClear(Who,"DM2.Actor.Armour")
@@ -1687,7 +1693,7 @@ ObjectReference Function ActorUsingGet(Actor Who)
 	return StorageUtil.GetFormValue(Who,self.KeyActorUsing) as ObjectReference
 EndFunction
 
-Function ActorUsingSet(Actor Who, ObjectReference What)
+Function ActorUsingSet(Actor Who, ObjectReference What, Bool Align=TRUE)
 {set an object (furniture) as being used by the actor. it will
 disable the furniture and move the actor to its location. the
 next step would be for you to trigger the idle package that
@@ -1706,7 +1712,10 @@ contains the animated equip version.}
 		self.PrintDebug("Disabling " + What.GetDisplayName())
 		Who.AddToFaction(self.dcc_dm_FactionUsingObject)
 		What.Disable(FALSE)
-		self.AlignObject(Who,What)
+
+		If(Align)
+			self.AlignObject(Who,What)
+		EndIf
 	EndIf
 	
 	StorageUtil.SetFormValue(Who,self.KeyActorUsing,What)
@@ -1977,6 +1986,43 @@ Function SelfBondageDisable()
 
 
 	Return
+EndFunction
+
+Bool Function SelfBondageEscapeAttempt()
+{returns if we were able to free ourselves.}
+
+	If(self.OptForceBondageTime > 0)
+		Float TimeDiff = Utility.GetCurrentRealTime() - StorageUtil.GetFloatValue(self.Player,"DM2.Actor.BondageClientStart",0.0)
+		Int EscapeRoll = Utility.RandomInt(1,99)
+
+		self.PrintDebug("Bondage Enforcement Enabled")
+
+		If(self.Player.GetActorValue("Stamina") < self.OptEscapeBondageStamina)
+			self.Print("You are too tired to escape.")
+			self.Player.DamageActorValue("Stamina",self.OptEscapeBondageStamina)
+			Return FALSE
+		EndIf
+
+		self.Player.DamageActorValue("Stamina",self.OptEscapeBondageStamina)
+
+		If(TimeDiff < self.OptForceBondageTime)
+			self.PrintDebug("Bondage Enforced (" + self.OptEscapeBondageChance + "%, " + EscapeRoll + ")")
+
+			If(EscapeRoll >= self.OptEscapeBondageChance)
+				self.Print("Your escape attempt fails. It has only been " + (TimeDiff / 60.0) + " minutes.")
+
+				If(self.OptEscapeBondageFailArouse)
+					self.ActorArousalUpdate(self.Player, FALSE)
+				EndIf
+
+				Return FALSE
+			EndIf
+		EndIf
+	EndIf
+
+	self.Print("You have freed yourself from the restraints.")
+
+	Return TRUE
 EndFunction
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
