@@ -3,7 +3,7 @@ Scriptname dcc_dm_QuestController extends Quest
 Int Function Version() Global
 {current version number}
 
-	Return 205
+	Return 206
 EndFunction
 
 dcc_dm_QuestController Function Get() Global
@@ -59,11 +59,13 @@ Faction Property dcc_dm_FactionControl Auto
 Faction Property dcc_dm_FactionOutfit Auto
 Faction Property dcc_dm_FactionUsingObject Auto
 Faction Property dcc_dm_FactionAroused Auto
+Faction Property dcc_dm_FactionInteract Auto
 
 FormList Property dcc_dm_ListTransformPose_0275 Auto
 Message Property dcc_dm_MsgUseObject Auto
 Spell Property dcc_dm_SpellArousedFxOnDelay Auto
 Spell Property dcc_dm_SpellArousedFxNow Auto
+Spell Property dcc_dm_SpellAnimationLock Auto
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Config Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -144,6 +146,7 @@ String Property KeyActorOutfit1   = "DM2.Actor.Outfit1" Auto Hidden       ;; sto
 String Property KeyActorOutfit2   = "DM2.Actor.Outfit2" Auto Hidden       ;; storageutil actor
 String Property KeyActorTransform = "DM2.Actor.Transform" Auto Hidden     ;; storageutil actor
 String Property KeyActorUsing     = "DM2.Actor.Using" Auto Hidden         ;; storageutil actor
+String Property KeyActorInteract  = "DM2.Actor.Interactions" Auto Hidden  ;; storageutil actor
 String Property KeyCtrlMode       = "DM2.Control.Mode" Auto Hidden        ;; storageutil global
 String Property KeyCtrlActor      = "DM2.Control.Actor" Auto Hidden       ;; storageutil global
 String Property KeyCtrlPkgList    = "DM2.Control.PackageList" Auto Hidden ;; storageutil global
@@ -482,9 +485,55 @@ Function AlignObject(ObjectReference What, ObjectReference With)
 {align two objects but making sure its standing straight up and didn't get lold
 by the terrain angle or something.}
 
-	What.SetPosition(With.GetPositionX(),With.GetPositionY(),With.GetPositionZ())
-	What.SetAngle(0,With.GetAngleY(),With.GetAngleZ())
+	;/*
+	Int WaitLock = 10
 
+	If(!With.Is3DLoaded())
+		self.PrintDebug("Warning: With does not have its 3D loaded.")
+	EndIf
+
+	While(!With.Is3DLoaded() && WaitLock > 0)
+		self.PrintDebug(WaitLock + ") Waiting for With to load...")
+		WaitLock -= 1
+		Utility.Wait(0.5)
+	EndWhile
+	*/;
+
+	What.MoveTo(With)
+
+	If(What as Actor == None)
+		What.SetAngle(0,With.GetAngleY(),With.GetAngleZ())
+	EndIf
+
+	;;What.SetAngle(0,With.GetAngleY(),With.GetAngleZ())
+	;;What.SetPosition(With.GetPositionX(),With.GetPositionY(),With.GetPositionZ())
+
+	Return
+EndFunction
+
+Function MoveObjectByVector(ObjectReference What, ObjectReference With, Float Distance=100.0, Bool Align=FALSE)
+{move this object x units in the direction this other thing is facing.
+e.g. put this thing in front of the other thing.}
+	
+	Float Angle = With.GetAngleZ()
+	Float X
+	Float Y
+
+	;; i really don't know.
+	;; https://www.creationkit.com/index.php?title=GetAngleZ_-_ObjectReference
+
+	If(Angle < 90)
+		Angle = 90 - Angle
+	Else
+		Angle = 450 - Angle
+	EndIf
+
+	X = Math.Sin(Angle) * Distance
+	Y = Math.Cos(Angle) * Distance
+
+	;;;;;;;;
+
+	What.MoveTo(With,X,Y,0.0,TRUE)
 	Return
 EndFunction
 
@@ -529,6 +578,15 @@ String Function ReadableTimeDelta(Float Time, Bool RealLife=FALSE)
 	Output = PapyrusUtil.StringJoin(PapyrusUtil.StringSplit(Output,",")," ")
 
 	Return Output	
+EndFunction
+
+Function CloseAllMenus()
+{stolen from AddItemMenu2. i had no idea. brilliant.}
+
+	Game.DisablePlayerControls()
+	Game.EnablePlayerControls()
+
+	Return
 EndFunction
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -815,6 +873,8 @@ Function ControlModeMoveCommand()
 	Bool Restrain = self.BehaviourRestrainGet(Who)
 	ObjectReference Device = self.ActorUsingGet(Who)
 	ObjectReference Where = self.ActorMarkerPlaceAt(Who,self.Player)
+
+	self.AlignObject(Where,self.Player)
 
 	Utility.Wait(1.0)
 	self.BehaviourRestrainSet(Who,FALSE)
@@ -1286,6 +1346,7 @@ Function BehaviourApply(Actor Who, Package Pkg, Bool Restrain=FALSE, Bool Align=
 
 	self.PoseTransformClear(Who)
 	self.BehaviourRestrainSet(Who,FALSE)
+	self.BehaviourInteractionClear(Who)
 	
 	If(Pkg != self.dcc_dm_PackageFollow && Pkg != self.dcc_dm_PackageDoNothing && Pkg != self.dcc_dm_PackageDoNothingMovable)
 		self.ActorStrip(Who)
@@ -1320,6 +1381,7 @@ is true.}
 	If(Pkg != None)
 		self.BehaviourPackageSet(Who,None)
 		self.PoseTransformClear(Who)
+		self.BehaviourInteractionClear(Who)
 		ActorUtil.RemovePackageOverride(Who,Pkg)
 		Who.EvaluatePackage()
 	EndIf
@@ -1332,7 +1394,7 @@ is true.}
 	self.ActorUnstrip(Who)
 
 	If(!Full)
-		Utility.Wait(0.1)
+		Utility.Wait(0.5)
 		self.AnimationReset(Who)
 		Return
 	EndIf
@@ -1456,6 +1518,22 @@ Bool Function BehaviourAllow(Actor Who, Bool Announce=TRUE)
 	EndIf
 
 	Return Allow
+EndFunction
+
+Function BehaviourInteractionAdd(Actor Who, String What, String AnimEvent)
+	StorageUtil.StringListAdd(Who,self.KeyActorInteract,(What+";"+AnimEvent))
+	Who.AddToFaction(self.dcc_dm_FactionInteract)
+	Return
+EndFunction
+
+Function BehaviourInteractionClear(Actor Who)
+	StorageUtil.StringListClear(Who,self.KeyActorInteract)
+	Who.RemoveFromFaction(self.dcc_dm_FactionInteract)
+	Return
+EndFunction
+
+String[] Function BehaviourInteractionGet(Actor Who)
+	Return StorageUtil.StringListToArray(Who,self.KeyActorInteract)
 EndFunction
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1655,6 +1733,7 @@ Function ActorUnstrip(Actor Who)
 
 	Return
 EndFunction
+
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 
@@ -2026,6 +2105,65 @@ Bool Function SelfBondageEscapeAttempt()
 EndFunction
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; bondage interaction api ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Function MenuInteractionSelector(Actor Who)
+{packages should be calling a script to populate what additional interactions
+this actor can tollerate while in this current pose. this will generate a menu
+from the list the package builds for the user to select.}
+
+	Package  Pkg = self.BehaviourPackageGet(Who)
+	String[] Actions = self.BehaviourInteractionGet(Who)
+	Int      Iter = 0
+	Int      Result = -1
+
+	String[] NameList = Utility.CreateStringArray(Actions.Length)
+	String[] AnimList = Utility.CreateStringArray(Actions.Length)
+	String[] Item
+
+	If(Actions.Length == 0)
+		self.Print(Who.GetDisplayName() + " is not currently interactable.")
+	EndIf
+
+	;;;;;;;;
+
+	Iter = 0
+	While(Iter < Actions.Length)
+		Item = PapyrusUtil.StringSplit(Actions[Iter],";")
+
+		NameList[Iter] = Item[0]
+		AnimList[Iter] = Item[1]
+
+		Iter += 1
+	EndWhile
+
+	;;;;;;;;
+
+	Result = self.MenuFromList(Who,NameList)
+
+	If(Result < 0)
+		self.PrintDebug("No Interaction Selected")
+		Return
+	EndIf
+
+	If(self.OptTutorials)	
+		Debug.MessageBox("Press JUMP to stop.")
+	EndIf
+
+	self.PrintDebug("Interaction: " + AnimList[Result])
+
+	Game.ForceThirdPerson()
+	self.ActorMarkerPlaceAt(self.Player,self.ActorMarkerGet(Who))
+
+	Who.AddSpell(self.dcc_dm_SpellAnimationLock,TRUE)
+	self.Player.AddSpell(self.dcc_dm_SpellAnimationLock,TRUE)
+
+	Debug.SendAnimationEvent(self.Player,AnimList[Result])	
+
+	Return
+EndFunction
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; menu systems ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Function MenuPoseListSelector(Actor Who)
@@ -2105,7 +2243,6 @@ Function MenuPoseListSelector(Actor Who)
 	Utility.Wait(0.01)
 	Menu.OpenMenu()
 	self.dcc_dm_ImodMenu.Remove()
-
 	Result = Menu.GetResultString()
 
 	Iter = 0
@@ -2119,4 +2256,26 @@ Function MenuPoseListSelector(Actor Who)
 	EndWhile
 
 	Return
+EndFunction
+
+Int Function MenuFromList(Actor Who, String[] Items)
+{presents a menu saying the specified things, returning the item that was
+selected.}
+
+	UIListMenu Menu = UIExtensions.GetMenu("UIListMenu",TRUE) as UIListMenu
+	String Result
+	Int Iter = 0
+
+	While(Iter < Items.Length)
+		Menu.AddEntryItem(Items[Iter])
+		Iter += 1
+	EndWhile
+
+	self.dcc_dm_ImodMenu.Apply(1.0)
+	Utility.Wait(0.01)
+
+	Menu.OpenMenu()
+	self.dcc_dm_ImodMenu.Remove()
+
+	Return Menu.GetResultInt()
 EndFunction

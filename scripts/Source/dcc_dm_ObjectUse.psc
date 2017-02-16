@@ -28,8 +28,11 @@ Event OnActivate(ObjectReference Who)
 			self.OnActivate_PickUp(Who as Actor)
 		EndIf
 	Else
-		self.OnActivate_Use(Who as Actor)
+		;; favor disable must happen first or else the
+		;; packages don't seem to fire their on start
+		;; scripting.
 		(Who as Actor).SetDoingFavor(FALSE)
+		self.OnActivate_Use(Who as Actor)
 	EndIf
 
 	Return

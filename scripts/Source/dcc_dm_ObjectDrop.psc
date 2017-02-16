@@ -26,9 +26,11 @@ Event OnEquipped(Actor Who)
 	;; we need the player to close the menu. and for the menu to be done
 	;; animating otherwise there seems to be a high probability that it
 	;; will never visually spawn in the world, even though its collision will.
-	Debug.MessageBox("Close the menu to place " + self.Myself.GetName())
-	Utility.Wait(0.1)
+	;;Debug.MessageBox("Close the menu to place " + self.Myself.GetName())
+	;;Utility.Wait(0.1)
 
+	DM.CloseAllMenus()
+	
 	;; then place the object at the location we dropped and make sure its
 	;; angle didn't get lol'd by placeatme.
 	Object = DM.Player.PlaceAtMe(self.PlaceItem,1,TRUE,TRUE)
